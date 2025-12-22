@@ -11,40 +11,40 @@ class ItemSeeder extends Seeder
     {
         $items = [
             [
-                'item_code' => 'ITM-EO-001',
-                'item_name' => 'Engine Oil SAE 15W-40',
-                'uom' => 'LTR',
+                'sku' => 'ITM-EO-001',
+                'name' => 'Engine Oil SAE 15W-40',
+                'uom_code' => 'LTR',
                 'is_serialized' => false,
-                'is_batch_tracked' => true,
-                'criticality_level' => 'MEDIUM',
+                'criticality_level' => 3,
             ],
             [
-                'item_code' => 'ITM-FF-001',
-                'item_name' => 'Fuel Filter (Heavy Duty)',
-                'uom' => 'PCS',
+                'sku' => 'ITM-FF-001',
+                'name' => 'Fuel Filter (Heavy Duty)',
+                'uom_code' => 'PCS',
                 'is_serialized' => false,
-                'is_batch_tracked' => false,
-                'criticality_level' => 'MEDIUM',
+                'criticality_level' => 3,
             ],
             [
-                'item_code' => 'ITM-HH-001',
-                'item_name' => 'Hydraulic Hose 1/2" 2-Wire',
-                'uom' => 'MTR',
+                'sku' => 'ITM-HH-001',
+                'name' => 'Hydraulic Hose 1/2" 2-Wire',
+                'uom_code' => 'MTR',
                 'is_serialized' => false,
-                'is_batch_tracked' => false,
-                'criticality_level' => 'HIGH',
+                'criticality_level' => 2,
             ],
         ];
 
+        $uomIdsByCode = DB::table('uoms')->pluck('id', 'code');
+
         foreach ($items as $item) {
+            $baseUomId = $uomIdsByCode[$item['uom_code']] ?? null;
+
             DB::table('items')->updateOrInsert(
-                ['item_code' => $item['item_code']],
+                ['sku' => $item['sku']],
                 [
-                    'item_name' => $item['item_name'],
-                    'uom' => $item['uom'], // legacy string UOM (kept intentionally)
+                    'name' => $item['name'],
                     'is_serialized' => $item['is_serialized'],
-                    'is_batch_tracked' => $item['is_batch_tracked'],
                     'criticality_level' => $item['criticality_level'],
+                    'base_uom_id' => $baseUomId,
                     'updated_at' => now(),
                     'created_at' => now(),
                 ],
