@@ -39,6 +39,13 @@ class RolePermissionSeeder extends Seeder
         $finance = Role::query()->firstOrCreate(['name' => 'finance', 'guard_name' => 'web']);
         $finance->givePermissionTo(['approve po']);
 
+        // PO approval chain (per prompt): GM and Director.
+        $gm = Role::query()->firstOrCreate(['name' => 'gm', 'guard_name' => 'web']);
+        $gm->givePermissionTo(['approve po']);
+
+        $director = Role::query()->firstOrCreate(['name' => 'director', 'guard_name' => 'web']);
+        $director->givePermissionTo(['approve po']);
+
         $warehouse = Role::query()->firstOrCreate(['name' => 'warehouse', 'guard_name' => 'web']);
         $warehouse->givePermissionTo(['receive goods', 'put away', 'pick items']);
 

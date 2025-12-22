@@ -20,6 +20,7 @@ class DatabaseSeeder extends Seeder
         $this->call(UomSeeder::class);
         $this->call(DepartmentSeeder::class);
         $this->call(ItemSeeder::class);
+        $this->call(SupplierSeeder::class);
 
         $user = User::query()->updateOrCreate(
             ['email' => 'superadmin@gmail.com'],

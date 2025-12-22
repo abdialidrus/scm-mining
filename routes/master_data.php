@@ -37,4 +37,26 @@ Route::middleware(['auth', 'verified'])->group(function () {
             'userId' => $user->id,
         ]);
     })->name('master-data.users.show');
+
+    Route::get('/master-data/suppliers', function () {
+        return Inertia::render('master-data/suppliers/Index');
+    })->name('master-data.suppliers.index');
+
+    Route::get('/master-data/suppliers/create', function () {
+        return Inertia::render('master-data/suppliers/Form', [
+            'supplierId' => null,
+        ]);
+    })->name('master-data.suppliers.create');
+
+    Route::get('/master-data/suppliers/{supplierId}/edit', function (int $supplierId) {
+        return Inertia::render('master-data/suppliers/Form', [
+            'supplierId' => $supplierId,
+        ]);
+    })->name('master-data.suppliers.edit');
+
+    Route::get('/master-data/suppliers/{supplierId}', function (int $supplierId) {
+        return Inertia::render('master-data/suppliers/Show', [
+            'supplierId' => $supplierId,
+        ]);
+    })->name('master-data.suppliers.show');
 });

@@ -4,6 +4,7 @@ use App\Http\Controllers\Api\DepartmentController;
 use App\Http\Controllers\Api\ItemController;
 use App\Http\Controllers\Api\PurchaseRequestController;
 use App\Http\Controllers\Api\RoleController;
+use App\Http\Controllers\Api\SupplierController;
 use App\Http\Controllers\Api\UomController;
 use App\Http\Controllers\Api\UserController;
 use Illuminate\Http\Request;
@@ -37,4 +38,10 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/users/{user}', [UserController::class, 'show']);
     Route::put('/users/{user}', [UserController::class, 'update']);
     Route::delete('/users/{user}', [UserController::class, 'destroy']);
+
+    Route::get('/suppliers', [SupplierController::class, 'index']);
+    Route::post('/suppliers', [SupplierController::class, 'store']);
+    Route::get('/suppliers/{supplier}', [SupplierController::class, 'show']);
+    Route::put('/suppliers/{supplier}', [SupplierController::class, 'update']);
+    Route::delete('/suppliers/{supplier}', [SupplierController::class, 'destroy']);
 });

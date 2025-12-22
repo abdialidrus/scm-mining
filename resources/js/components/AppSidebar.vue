@@ -56,7 +56,11 @@ const masterDataNavItems: NavItem[] = [
         href: '/master-data/uoms',
         icon: Ruler,
     },
-
+    {
+        title: 'Suppliers',
+        href: '/master-data/suppliers',
+        icon: Users,
+    },
     {
         title: 'Users',
         href: '/master-data/users',
