@@ -18,6 +18,7 @@ import {
     TableRow,
 } from '@/components/ui/table';
 import AppLayout from '@/layouts/AppLayout.vue';
+import { formatQty } from '@/lib/format';
 import {
     approvePurchaseRequest,
     getPurchaseRequest,
@@ -277,7 +278,7 @@ onMounted(load);
                                         >
                                     </TableCell>
                                     <TableCell class="text-right">{{
-                                        l.quantity
+                                        formatQty(l.quantity)
                                     }}</TableCell>
                                     <TableCell>{{
                                         l.uom?.code ?? l.uom_id ?? '-'
