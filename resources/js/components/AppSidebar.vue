@@ -30,11 +30,6 @@ const mainNavItems: NavItem[] = [
         href: dashboard(),
         icon: LayoutGrid,
     },
-    {
-        title: 'Purchase Requests',
-        href: '/purchase-requests',
-        icon: FileText,
-    },
 ];
 
 const procurementNavItems: NavItem[] = [
