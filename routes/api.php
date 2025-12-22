@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Api\DepartmentController;
 use App\Http\Controllers\Api\ItemController;
+use App\Http\Controllers\Api\PurchaseOrderController;
 use App\Http\Controllers\Api\PurchaseRequestController;
 use App\Http\Controllers\Api\RoleController;
 use App\Http\Controllers\Api\SupplierController;
@@ -28,7 +29,20 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/{purchaseRequest}/submit', [PurchaseRequestController::class, 'submit']);
         Route::post('/{purchaseRequest}/approve', [PurchaseRequestController::class, 'approve']);
         Route::post('/{purchaseRequest}/reject', [PurchaseRequestController::class, 'reject']);
-        Route::post('/{purchaseRequest}/convert-to-po', [PurchaseRequestController::class, 'convertToPo']);
+    });
+
+    Route::prefix('purchase-orders')->group(function () {
+        Route::get('/', [PurchaseOrderController::class, 'index']);
+        Route::post('/', [PurchaseOrderController::class, 'store']);
+        Route::get('/{purchaseOrder}', [PurchaseOrderController::class, 'show']);
+        Route::put('/{purchaseOrder}', [PurchaseOrderController::class, 'updateDraft']);
+        Route::post('/{purchaseOrder}/reopen', [PurchaseOrderController::class, 'reopen']);
+
+        Route::post('/{purchaseOrder}/submit', [PurchaseOrderController::class, 'submit']);
+        Route::post('/{purchaseOrder}/approve', [PurchaseOrderController::class, 'approve']);
+        Route::post('/{purchaseOrder}/send', [PurchaseOrderController::class, 'send']);
+        Route::post('/{purchaseOrder}/close', [PurchaseOrderController::class, 'close']);
+        Route::post('/{purchaseOrder}/cancel', [PurchaseOrderController::class, 'cancel']);
     });
 
     Route::get('/roles', [RoleController::class, 'index']);

@@ -16,4 +16,5 @@ Route::get('dashboard', function () {
 
 require __DIR__ . '/settings.php';
 require __DIR__ . '/purchase_requests.php';
+require __DIR__ . '/purchase_orders.php';
 require __DIR__ . '/master_data.php';

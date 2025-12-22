@@ -20,6 +20,7 @@ import {
     LayoutGrid,
     Package,
     Ruler,
+    ShoppingCart,
     Users,
 } from 'lucide-vue-next';
 import AppLogo from './AppLogo.vue';
@@ -37,6 +38,11 @@ const procurementNavItems: NavItem[] = [
         title: 'Purchase Requests',
         href: '/purchase-requests',
         icon: FileText,
+    },
+    {
+        title: 'Purchase Orders',
+        href: '/purchase-orders',
+        icon: ShoppingCart,
     },
 ];
 

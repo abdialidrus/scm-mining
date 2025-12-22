@@ -226,35 +226,7 @@ class PurchaseRequestService
         });
     }
 
-    public function convertToPo(User $actor, int $purchaseRequestId): PurchaseRequest
-    {
-        return DB::transaction(function () use ($actor, $purchaseRequestId) {
-            /** @var PurchaseRequest $pr */
-            $pr = PurchaseRequest::query()->lockForUpdate()->findOrFail($purchaseRequestId);
-
-            if ($pr->status !== PurchaseRequest::STATUS_APPROVED) {
-                throw ValidationException::withMessages([
-                    'status' => 'Only APPROVED PR can be converted to PO.',
-                ]);
-            }
-
-            $fromStatus = $pr->status;
-
-            $pr->status = PurchaseRequest::STATUS_CONVERTED_TO_PO;
-            $pr->converted_to_po_at = now();
-            $pr->save();
-
-            $this->recordStatusHistory(
-                pr: $pr,
-                fromStatus: $fromStatus,
-                toStatus: $pr->status,
-                action: 'convert_to_po',
-                actor: $actor,
-            );
-
-            return $pr->load(['lines.item', 'lines.uom', 'department.head', 'requester', 'approvedBy']);
-        });
-    }
+    // NOTE: PR -> PO conversion is handled by PurchaseOrderService when creating a PO from PRs.
 
     private function recordStatusHistory(
         PurchaseRequest $pr,

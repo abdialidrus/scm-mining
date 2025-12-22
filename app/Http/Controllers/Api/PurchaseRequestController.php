@@ -104,13 +104,4 @@ class PurchaseRequestController extends Controller
 
         return response()->json(['data' => $pr]);
     }
-
-    public function convertToPo(Request $request, PurchaseRequest $purchaseRequest): JsonResponse
-    {
-        // Authorization for conversion will be refined once PO module exists.
-        // For now, require authenticated user and valid state transition.
-        $pr = $this->service->convertToPo($request->user(), $purchaseRequest->id);
-
-        return response()->json(['data' => $pr]);
-    }
 }
