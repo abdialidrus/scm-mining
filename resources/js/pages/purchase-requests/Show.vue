@@ -212,7 +212,7 @@ onMounted(load);
                             </TableHeader>
                             <TableBody>
                                 <TableRow
-                                    v-for="h in pr.statusHistories ?? []"
+                                    v-for="h in pr.status_histories ?? []"
                                     :key="h.id"
                                 >
                                     <TableCell>{{ h.created_at }}</TableCell>
@@ -230,7 +230,7 @@ onMounted(load);
 
                                 <TableRow
                                     v-if="
-                                        (pr.statusHistories ?? []).length === 0
+                                        (pr.status_histories ?? []).length === 0
                                     "
                                 >
                                     <TableCell

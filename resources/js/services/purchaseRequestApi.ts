@@ -57,7 +57,7 @@ export type PurchaseRequestDto = {
     approved_at?: string | null;
     created_at?: string | null;
     lines: PurchaseRequestLineDto[];
-    statusHistories?: PurchaseRequestStatusHistoryDto[];
+    status_histories?: PurchaseRequestStatusHistoryDto[];
 };
 
 export type Paginated<T> = {
