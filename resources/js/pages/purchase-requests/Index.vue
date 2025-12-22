@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import StatusBadge from '@/components/StatusBadge.vue';
 import Button from '@/components/ui/button/Button.vue';
 import Input from '@/components/ui/input/Input.vue';
 import {
@@ -173,7 +174,9 @@ onMounted(load);
                         <TableCell>{{
                             pr.requester?.name ?? pr.requester_user_id
                         }}</TableCell>
-                        <TableCell>{{ pr.status }}</TableCell>
+                        <TableCell>
+                            <StatusBadge module="PR" :status="pr.status" />
+                        </TableCell>
                         <TableCell>{{
                             formatDateTime(pr.created_at)
                         }}</TableCell>

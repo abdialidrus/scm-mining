@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import StatusBadge from '@/components/StatusBadge.vue';
 import Button from '@/components/ui/button/Button.vue';
 import Input from '@/components/ui/input/Input.vue';
 import {
@@ -160,7 +161,9 @@ onMounted(load);
                         <TableCell>{{
                             po.supplier?.name ?? po.supplier_id
                         }}</TableCell>
-                        <TableCell>{{ po.status }}</TableCell>
+                        <TableCell>
+                            <StatusBadge module="PO" :status="po.status" />
+                        </TableCell>
                         <TableCell>{{ po.currency_code }}</TableCell>
                         <TableCell class="text-right">{{
                             po.total_amount == null
