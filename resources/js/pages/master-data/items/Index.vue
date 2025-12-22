@@ -1,6 +1,14 @@
 <script setup lang="ts">
 import Button from '@/components/ui/button/Button.vue';
 import Input from '@/components/ui/input/Input.vue';
+import {
+    Table,
+    TableBody,
+    TableCell,
+    TableHead,
+    TableHeader,
+    TableRow,
+} from '@/components/ui/table';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { fetchItems, type ItemDto } from '@/services/masterDataApi';
 import { Head } from '@inertiajs/vue3';
@@ -62,32 +70,38 @@ onMounted(load);
         </div>
 
         <div v-else class="mt-6 overflow-hidden rounded-lg border">
-            <table class="w-full text-sm">
-                <thead class="bg-muted/40 text-left">
-                    <tr>
-                        <th class="px-3 py-2">SKU</th>
-                        <th class="px-3 py-2">Name</th>
-                        <th class="px-3 py-2">Base UOM</th>
-                        <th class="px-3 py-2">ID</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr v-for="it in items" :key="it.id" class="border-t">
-                        <td class="px-3 py-2 font-medium">{{ it.sku }}</td>
-                        <td class="px-3 py-2">{{ it.name }}</td>
-                        <td class="px-3 py-2">{{ it.base_uom_code ?? '-' }}</td>
-                        <td class="px-3 py-2">{{ it.id }}</td>
-                    </tr>
-                    <tr v-if="items.length === 0" class="border-t">
-                        <td
+            <Table>
+                <TableHeader class="bg-muted/40">
+                    <TableRow>
+                        <TableHead>SKU</TableHead>
+                        <TableHead>Name</TableHead>
+                        <TableHead>Base UOM</TableHead>
+                        <TableHead class="text-right">ID</TableHead>
+                    </TableRow>
+                </TableHeader>
+                <TableBody>
+                    <TableRow
+                        v-for="it in items"
+                        :key="it.id"
+                        class="cursor-pointer hover:bg-muted/30"
+                        title="Read-only"
+                    >
+                        <TableCell class="font-medium">{{ it.sku }}</TableCell>
+                        <TableCell>{{ it.name }}</TableCell>
+                        <TableCell>{{ it.base_uom_code ?? '-' }}</TableCell>
+                        <TableCell class="text-right">{{ it.id }}</TableCell>
+                    </TableRow>
+
+                    <TableRow v-if="items.length === 0">
+                        <TableCell
                             colspan="4"
-                            class="px-3 py-6 text-center text-muted-foreground"
+                            class="py-6 text-center text-muted-foreground"
                         >
                             No items.
-                        </td>
-                    </tr>
-                </tbody>
-            </table>
+                        </TableCell>
+                    </TableRow>
+                </TableBody>
+            </Table>
         </div>
     </AppLayout>
 </template>

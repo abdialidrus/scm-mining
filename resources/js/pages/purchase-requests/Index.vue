@@ -1,11 +1,19 @@
 <script setup lang="ts">
 import Button from '@/components/ui/button/Button.vue';
+import {
+    Table,
+    TableBody,
+    TableCell,
+    TableHead,
+    TableHeader,
+    TableRow,
+} from '@/components/ui/table';
 import AppLayout from '@/layouts/AppLayout.vue';
 import {
     listPurchaseRequests,
     type PurchaseRequestListItemDto,
 } from '@/services/purchaseRequestApi';
-import { Head, Link } from '@inertiajs/vue3';
+import { Head, Link, router } from '@inertiajs/vue3';
 import { onMounted, ref } from 'vue';
 
 const loading = ref(true);
@@ -56,47 +64,38 @@ onMounted(load);
         </div>
 
         <div v-else class="mt-6 overflow-hidden rounded-lg border">
-            <table class="w-full text-sm">
-                <thead class="bg-muted/40 text-left">
-                    <tr>
-                        <th class="px-3 py-2">PR No</th>
-                        <th class="px-3 py-2">Status</th>
-                        <th class="px-3 py-2">ID</th>
-                        <th class="px-3 py-2"></th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr v-for="pr in items" :key="pr.id" class="border-t">
-                        <td class="px-3 py-2 font-medium">
-                            <Link
-                                class="hover:underline"
-                                :href="`/purchase-requests/${pr.id}`"
-                            >
-                                {{ pr.pr_number }}
-                            </Link>
-                        </td>
-                        <td class="px-3 py-2">{{ pr.status }}</td>
-                        <td class="px-3 py-2">{{ pr.id }}</td>
-                        <td class="px-3 py-2 text-right">
-                            <Link
-                                class="text-primary hover:underline"
-                                :href="`/purchase-requests/${pr.id}`"
-                            >
-                                View
-                            </Link>
-                        </td>
-                    </tr>
+            <Table>
+                <TableHeader class="bg-muted/40">
+                    <TableRow>
+                        <TableHead>PR No</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead class="text-right">ID</TableHead>
+                    </TableRow>
+                </TableHeader>
+                <TableBody>
+                    <TableRow
+                        v-for="pr in items"
+                        :key="pr.id"
+                        class="cursor-pointer hover:bg-muted/30"
+                        @click="router.visit(`/purchase-requests/${pr.id}`)"
+                    >
+                        <TableCell class="font-medium">{{
+                            pr.pr_number
+                        }}</TableCell>
+                        <TableCell>{{ pr.status }}</TableCell>
+                        <TableCell class="text-right">{{ pr.id }}</TableCell>
+                    </TableRow>
 
-                    <tr v-if="items.length === 0" class="border-t">
-                        <td
-                            colspan="4"
-                            class="px-3 py-6 text-center text-muted-foreground"
+                    <TableRow v-if="items.length === 0">
+                        <TableCell
+                            colspan="3"
+                            class="py-6 text-center text-muted-foreground"
                         >
                             No purchase requests.
-                        </td>
-                    </tr>
-                </tbody>
-            </table>
+                        </TableCell>
+                    </TableRow>
+                </TableBody>
+            </Table>
         </div>
     </AppLayout>
 </template>

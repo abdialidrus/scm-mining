@@ -1,4 +1,12 @@
 <script setup lang="ts">
+import {
+    Table,
+    TableBody,
+    TableCell,
+    TableHead,
+    TableHeader,
+    TableRow,
+} from '@/components/ui/table';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { fetchUoms, type UomDto } from '@/services/masterDataApi';
 import { Head } from '@inertiajs/vue3';
@@ -46,30 +54,36 @@ onMounted(load);
         </div>
 
         <div v-else class="mt-6 overflow-hidden rounded-lg border">
-            <table class="w-full text-sm">
-                <thead class="bg-muted/40 text-left">
-                    <tr>
-                        <th class="px-3 py-2">Code</th>
-                        <th class="px-3 py-2">Name</th>
-                        <th class="px-3 py-2">ID</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr v-for="u in uoms" :key="u.id" class="border-t">
-                        <td class="px-3 py-2 font-medium">{{ u.code }}</td>
-                        <td class="px-3 py-2">{{ u.name }}</td>
-                        <td class="px-3 py-2">{{ u.id }}</td>
-                    </tr>
-                    <tr v-if="uoms.length === 0" class="border-t">
-                        <td
+            <Table>
+                <TableHeader class="bg-muted/40">
+                    <TableRow>
+                        <TableHead>Code</TableHead>
+                        <TableHead>Name</TableHead>
+                        <TableHead class="text-right">ID</TableHead>
+                    </TableRow>
+                </TableHeader>
+                <TableBody>
+                    <TableRow
+                        v-for="u in uoms"
+                        :key="u.id"
+                        class="cursor-pointer hover:bg-muted/30"
+                        title="Read-only"
+                    >
+                        <TableCell class="font-medium">{{ u.code }}</TableCell>
+                        <TableCell>{{ u.name }}</TableCell>
+                        <TableCell class="text-right">{{ u.id }}</TableCell>
+                    </TableRow>
+
+                    <TableRow v-if="uoms.length === 0">
+                        <TableCell
                             colspan="3"
-                            class="px-3 py-6 text-center text-muted-foreground"
+                            class="py-6 text-center text-muted-foreground"
                         >
                             No UOMs.
-                        </td>
-                    </tr>
-                </tbody>
-            </table>
+                        </TableCell>
+                    </TableRow>
+                </TableBody>
+            </Table>
         </div>
     </AppLayout>
 </template>
