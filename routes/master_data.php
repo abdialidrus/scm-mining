@@ -11,4 +11,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/master-data/uoms', function () {
         return Inertia::render('master-data/uoms/Index');
     })->name('master-data.uoms.index');
+
+    Route::get('/master-data/departments', function () {
+        return Inertia::render('master-data/departments/Index');
+    })->name('master-data.departments.index');
 });

@@ -21,6 +21,7 @@ import {
     LayoutGrid,
     Package,
     Ruler,
+    Users,
 } from 'lucide-vue-next';
 import AppLogo from './AppLogo.vue';
 
@@ -44,6 +45,11 @@ const mainNavItems: NavItem[] = [
         title: 'Master - UOMs',
         href: '/master-data/uoms',
         icon: Ruler,
+    },
+    {
+        title: 'Master - Departments',
+        href: '/master-data/departments',
+        icon: Users,
     },
 ];
 

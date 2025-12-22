@@ -2,6 +2,7 @@
 import Button from '@/components/ui/button/Button.vue';
 import Input from '@/components/ui/input/Input.vue';
 import AppLayout from '@/layouts/AppLayout.vue';
+import { fetchDepartments, type DepartmentDto } from '@/services/masterDataApi';
 import {
     createPurchaseRequest,
     fetchItems,
@@ -24,6 +25,7 @@ const error = ref<string | null>(null);
 const uoms = ref<UomDto[]>([]);
 const items = ref<ItemDto[]>([]);
 const itemSearch = ref('');
+const departments = ref<DepartmentDto[]>([]);
 
 const form = reactive({
     department_id: 1,
@@ -56,9 +58,14 @@ function setFromDto(dto: PurchaseRequestDto) {
 }
 
 async function loadMasters() {
-    const [u, it] = await Promise.all([fetchUoms(), fetchItems({ limit: 50 })]);
+    const [u, it, d] = await Promise.all([
+        fetchUoms(),
+        fetchItems({ limit: 50 }),
+        fetchDepartments(),
+    ]);
     uoms.value = u.data;
     items.value = it.data;
+    departments.value = d.data;
 }
 
 async function loadExisting() {
@@ -180,15 +187,21 @@ onMounted(load);
             <div class="rounded-lg border p-4">
                 <div class="grid gap-4 md:grid-cols-2">
                     <div>
-                        <label class="text-sm font-medium">Department ID</label>
-                        <Input
+                        <label class="text-sm font-medium">Department</label>
+                        <select
                             v-model.number="form.department_id"
-                            type="number"
-                            min="1"
-                        />
+                            class="mt-1 w-full rounded-md border bg-background px-2 py-2"
+                        >
+                            <option
+                                v-for="d in departments"
+                                :key="d.id"
+                                :value="d.id"
+                            >
+                                {{ d.code }} — {{ d.name }}
+                            </option>
+                        </select>
                         <p class="mt-1 text-xs text-muted-foreground">
-                            Temporary: will be dropdown once departments
-                            endpoint is added.
+                            Department must match your user department.
                         </p>
                     </div>
 

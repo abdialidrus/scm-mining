@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Api\DepartmentController;
 use App\Http\Controllers\Api\ItemController;
 use App\Http\Controllers\Api\PurchaseRequestController;
 use App\Http\Controllers\Api\UomController;
@@ -13,6 +14,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::get('/items', [ItemController::class, 'index']);
     Route::get('/uoms', [UomController::class, 'index']);
+    Route::get('/departments', [DepartmentController::class, 'index']);
 
     Route::prefix('purchase-requests')->group(function () {
         Route::get('/', [PurchaseRequestController::class, 'index']);
