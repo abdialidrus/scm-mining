@@ -6,22 +6,24 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    /**
-     * Run the migrations.
-     */
     public function up(): void
     {
-        Schema::create('item_categories', function (Blueprint $table) {
+        if (Schema::hasTable('uoms')) {
+            return;
+        }
+
+        Schema::create('uoms', function (Blueprint $table) {
             $table->id();
+
+            $table->string('code')->unique(); // e.g. PCS, BOX, KG
+            $table->string('name');
+
             $table->timestamps();
         });
     }
 
-    /**
-     * Reverse the migrations.
-     */
     public function down(): void
     {
-        Schema::dropIfExists('item_categories');
+        Schema::dropIfExists('uoms');
     }
 };

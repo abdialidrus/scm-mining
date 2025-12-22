@@ -2,7 +2,6 @@
 
 namespace Database\Seeders;
 
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
@@ -14,27 +13,33 @@ class RolePermissionSeeder extends Seeder
      */
     public function run(): void
     {
-        Permission::create(['name' => 'create pr']);
-        Permission::create(['name' => 'approve pr']);
-        Permission::create(['name' => 'create po']);
-        Permission::create(['name' => 'approve po']);
-        Permission::create(['name' => 'receive goods']);
-        Permission::create(['name' => 'put away']);
-        Permission::create(['name' => 'pick items']);
+        $permissions = [
+            'create pr',
+            'approve pr',
+            'create po',
+            'approve po',
+            'receive goods',
+            'put away',
+            'pick items',
+        ];
 
-        $requester = Role::create(['name' => 'requester']);
+        foreach ($permissions as $permission) {
+            Permission::query()->firstOrCreate(['name' => $permission, 'guard_name' => 'web']);
+        }
+
+        $requester = Role::query()->firstOrCreate(['name' => 'requester', 'guard_name' => 'web']);
         $requester->givePermissionTo(['create pr']);
 
-        $deptHead = Role::create(['name' => 'dept_head']);
+        $deptHead = Role::query()->firstOrCreate(['name' => 'dept_head', 'guard_name' => 'web']);
         $deptHead->givePermissionTo(['approve pr']);
 
-        $proc = Role::create(['name' => 'procurement']);
+        $proc = Role::query()->firstOrCreate(['name' => 'procurement', 'guard_name' => 'web']);
         $proc->givePermissionTo(['create po']);
 
-        $finance = Role::create(['name' => 'finance']);
+        $finance = Role::query()->firstOrCreate(['name' => 'finance', 'guard_name' => 'web']);
         $finance->givePermissionTo(['approve po']);
 
-        $warehouse = Role::create(['name' => 'warehouse']);
+        $warehouse = Role::query()->firstOrCreate(['name' => 'warehouse', 'guard_name' => 'web']);
         $warehouse->givePermissionTo(['receive goods', 'put away', 'pick items']);
     }
 }
