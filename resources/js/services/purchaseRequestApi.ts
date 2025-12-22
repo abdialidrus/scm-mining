@@ -3,9 +3,11 @@ import { apiFetch } from '@/services/http';
 export type UomDto = { id: number; code: string; name: string };
 export type ItemDto = {
     id: number;
-    item_code: string;
-    item_name: string;
-    uom: string;
+    sku: string;
+    name: string;
+    base_uom_id: number | null;
+    base_uom_code: string | null;
+    base_uom_name: string | null;
 };
 
 export type PurchaseRequestListItemDto = {

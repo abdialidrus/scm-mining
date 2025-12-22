@@ -277,7 +277,7 @@ onMounted(load);
                                     :key="it.id"
                                     :value="it.id"
                                 >
-                                    {{ it.item_code }} — {{ it.item_name }}
+                                    {{ it.sku }} — {{ it.name }}
                                 </option>
                             </select>
                         </div>
