@@ -10,7 +10,7 @@ import {
     TableRow,
 } from '@/components/ui/table';
 import AppLayout from '@/layouts/AppLayout.vue';
-import { formatCurrency } from '@/lib/format';
+import { formatCurrency, formatDateTime } from '@/lib/format';
 import {
     listPurchaseOrders,
     type PurchaseOrderDto,
@@ -169,7 +169,9 @@ onMounted(load);
                                       currency: po.currency_code,
                                   })
                         }}</TableCell>
-                        <TableCell>{{ po.created_at ?? '-' }}</TableCell>
+                        <TableCell>{{
+                            formatDateTime(po.created_at) ?? '-'
+                        }}</TableCell>
                     </TableRow>
 
                     <TableRow v-if="items.length === 0">

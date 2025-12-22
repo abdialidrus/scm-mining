@@ -19,7 +19,7 @@ import {
 } from '@/components/ui/table';
 import { useAbilities } from '@/composables/useAbilities';
 import AppLayout from '@/layouts/AppLayout.vue';
-import { formatQty } from '@/lib/format';
+import { formatDateTime, formatQty } from '@/lib/format';
 import {
     approvePurchaseRequest,
     getPurchaseRequest,
@@ -60,19 +60,6 @@ async function load() {
     } finally {
         loading.value = false;
     }
-}
-
-function formatDateTime(value?: string | null) {
-    if (!value) return '-';
-    const d = new Date(value);
-    if (Number.isNaN(d.getTime())) return value;
-    return new Intl.DateTimeFormat('id-ID', {
-        year: 'numeric',
-        month: 'short',
-        day: '2-digit',
-        hour: '2-digit',
-        minute: '2-digit',
-    }).format(d);
 }
 
 function setApiError(e: any, fallback: string) {

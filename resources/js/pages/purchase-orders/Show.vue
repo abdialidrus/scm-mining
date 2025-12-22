@@ -9,7 +9,7 @@ import {
     TableRow,
 } from '@/components/ui/table';
 import AppLayout from '@/layouts/AppLayout.vue';
-import { formatCurrency, formatQty } from '@/lib/format';
+import { formatCurrency, formatDateTime, formatQty } from '@/lib/format';
 import {
     approvePurchaseOrder,
     cancelPurchaseOrder,
@@ -528,7 +528,9 @@ onMounted(load);
                                     v-for="h in po.status_histories ?? []"
                                     :key="h.id"
                                 >
-                                    <TableCell>{{ h.created_at }}</TableCell>
+                                    <TableCell>{{
+                                        formatDateTime(h.created_at)
+                                    }}</TableCell>
                                     <TableCell>{{ h.action }}</TableCell>
                                     <TableCell>{{
                                         h.from_status ?? '-'
