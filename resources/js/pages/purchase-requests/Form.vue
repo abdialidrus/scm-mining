@@ -146,6 +146,14 @@ function setApiError(e: any, fallback: string) {
     fieldErrors.value = (e?.payload?.errors ?? {}) as Record<string, string[]>;
 }
 
+function lineError(
+    idx: number,
+    field: 'item_id' | 'quantity' | 'uom_id' | 'remarks',
+) {
+    const key = `lines.${idx}.${field}`;
+    return fieldErrors.value[key] ?? null;
+}
+
 async function save() {
     saving.value = true;
     error.value = null;
@@ -315,6 +323,12 @@ onMounted(load);
                                     {{ it.sku }} — {{ it.name }}
                                 </option>
                             </select>
+                            <div
+                                v-if="lineError(idx, 'item_id')"
+                                class="mt-1 text-xs text-destructive"
+                            >
+                                {{ lineError(idx, 'item_id')!.join(', ') }}
+                            </div>
                         </div>
 
                         <div class="md:col-span-2">
@@ -325,6 +339,12 @@ onMounted(load);
                                 step="0.01"
                                 min="0"
                             />
+                            <div
+                                v-if="lineError(idx, 'quantity')"
+                                class="mt-1 text-xs text-destructive"
+                            >
+                                {{ lineError(idx, 'quantity')!.join(', ') }}
+                            </div>
                         </div>
 
                         <div class="md:col-span-3">
@@ -342,6 +362,12 @@ onMounted(load);
                                     {{ u.code }} — {{ u.name }}
                                 </option>
                             </select>
+                            <div
+                                v-if="lineError(idx, 'uom_id')"
+                                class="mt-1 text-xs text-destructive"
+                            >
+                                {{ lineError(idx, 'uom_id')!.join(', ') }}
+                            </div>
                         </div>
 
                         <div class="flex items-end justify-end md:col-span-2">
@@ -361,6 +387,12 @@ onMounted(load);
                                 v-model="line.remarks"
                                 placeholder="Optional"
                             />
+                            <div
+                                v-if="lineError(idx, 'remarks')"
+                                class="mt-1 text-xs text-destructive"
+                            >
+                                {{ lineError(idx, 'remarks')!.join(', ') }}
+                            </div>
                         </div>
                     </div>
                 </div>

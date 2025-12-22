@@ -129,6 +129,43 @@ onMounted(load);
     <Head :title="pr ? `PR ${pr.pr_number}` : 'Purchase Request'" />
 
     <AppLayout>
+        <!-- Print-only header -->
+        <section v-if="pr" class="print-header hidden print:block">
+            <div class="flex items-start justify-between">
+                <div>
+                    <h1 class="print-title">PURCHASE REQUEST</h1>
+                    <div class="print-subtitle">
+                        {{ pr.pr_number }}
+                    </div>
+                </div>
+                <div class="text-right text-xs text-muted-foreground">
+                    Printed at: {{ formatDateTime(new Date().toISOString()) }}
+                </div>
+            </div>
+
+            <div class="print-meta">
+                <div>
+                    <div>
+                        <span class="label">Department:</span>
+                        {{ pr.department?.code ?? pr.department_id }}
+                    </div>
+                    <div>
+                        <span class="label">Requester:</span>
+                        {{ pr.requester?.name ?? pr.requester_user_id }}
+                    </div>
+                </div>
+                <div>
+                    <div>
+                        <span class="label">Status:</span> {{ pr.status }}
+                    </div>
+                    <div>
+                        <span class="label">Created:</span>
+                        {{ formatDateTime(pr.created_at) }}
+                    </div>
+                </div>
+            </div>
+        </section>
+
         <div class="flex items-center justify-between">
             <div>
                 <h1 class="text-xl font-semibold">
@@ -177,7 +214,7 @@ onMounted(load);
         </div>
 
         <div v-else-if="pr" class="mt-6 space-y-6">
-            <div class="rounded-lg border p-4">
+            <div class="print-block rounded-lg border p-4">
                 <div class="grid gap-2 md:grid-cols-2">
                     <div>
                         <span class="text-xs text-muted-foreground"
@@ -206,7 +243,7 @@ onMounted(load);
                 </div>
             </div>
 
-            <div class="rounded-lg border">
+            <div class="print-block rounded-lg border">
                 <div class="border-b p-4">
                     <h2 class="text-sm font-semibold">Lines</h2>
                 </div>
@@ -255,7 +292,7 @@ onMounted(load);
                 </div>
             </div>
 
-            <div class="rounded-lg border">
+            <div class="print-block rounded-lg border">
                 <div class="border-b p-4">
                     <h2 class="text-sm font-semibold">Audit History</h2>
                 </div>
@@ -320,7 +357,7 @@ onMounted(load);
                 </div>
             </div>
 
-            <div class="flex gap-2">
+            <div class="no-print flex gap-2">
                 <Button v-if="status === 'DRAFT'" @click="submit"
                     >Submit</Button
                 >
@@ -344,6 +381,22 @@ onMounted(load);
                     Print
                 </Button>
             </div>
+
+            <!-- Print-only signature blocks -->
+            <section v-if="pr" class="print-signatures hidden print:grid">
+                <div class="print-sign-box">
+                    <div class="print-sign-label">Requested By</div>
+                    <div class="print-sign-name">
+                        {{ pr.requester?.name ?? pr.requester_user_id }}
+                    </div>
+                </div>
+                <div class="print-sign-box">
+                    <div class="print-sign-label">Approved By</div>
+                    <div class="print-sign-name">
+                        {{ pr.approvedBy?.name ?? '-' }}
+                    </div>
+                </div>
+            </section>
         </div>
     </AppLayout>
 

@@ -75,6 +75,19 @@ function prevPage() {
     load();
 }
 
+function formatDateTime(value?: string | null) {
+    if (!value) return '-';
+    const d = new Date(value);
+    if (Number.isNaN(d.getTime())) return value;
+    return new Intl.DateTimeFormat('id-ID', {
+        year: 'numeric',
+        month: 'short',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+    }).format(d);
+}
+
 onMounted(load);
 </script>
 
@@ -136,8 +149,10 @@ onMounted(load);
                 <TableHeader class="bg-muted/40">
                     <TableRow>
                         <TableHead>PR No</TableHead>
+                        <TableHead>Department</TableHead>
+                        <TableHead>Requester</TableHead>
                         <TableHead>Status</TableHead>
-                        <TableHead class="text-right">ID</TableHead>
+                        <TableHead>Created</TableHead>
                     </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -150,13 +165,23 @@ onMounted(load);
                         <TableCell class="font-medium">{{
                             pr.pr_number
                         }}</TableCell>
+                        <TableCell>{{
+                            pr.department?.name ??
+                            pr.department?.code ??
+                            pr.department_id
+                        }}</TableCell>
+                        <TableCell>{{
+                            pr.requester?.name ?? pr.requester_user_id
+                        }}</TableCell>
                         <TableCell>{{ pr.status }}</TableCell>
-                        <TableCell class="text-right">{{ pr.id }}</TableCell>
+                        <TableCell>{{
+                            formatDateTime(pr.created_at)
+                        }}</TableCell>
                     </TableRow>
 
                     <TableRow v-if="items.length === 0">
                         <TableCell
-                            colspan="3"
+                            colspan="5"
                             class="py-6 text-center text-muted-foreground"
                         >
                             No purchase requests.
