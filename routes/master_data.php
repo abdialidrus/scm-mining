@@ -20,12 +20,6 @@ Route::middleware(['auth', 'verified'])->group(function () {
         return Inertia::render('master-data/users/Index');
     })->name('master-data.users.index');
 
-    Route::get('/master-data/users/{user}', function (\App\Models\User $user) {
-        return Inertia::render('master-data/users/Show', [
-            'userId' => $user->id,
-        ]);
-    })->name('master-data.users.show');
-
     Route::get('/master-data/users/create', function () {
         return Inertia::render('master-data/users/Form', [
             'userId' => null,
@@ -37,4 +31,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
             'userId' => $user->id,
         ]);
     })->name('master-data.users.edit');
+
+    Route::get('/master-data/users/{user}', function (\App\Models\User $user) {
+        return Inertia::render('master-data/users/Show', [
+            'userId' => $user->id,
+        ]);
+    })->name('master-data.users.show');
 });
