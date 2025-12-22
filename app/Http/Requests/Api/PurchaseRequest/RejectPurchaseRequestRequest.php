@@ -14,7 +14,16 @@ class RejectPurchaseRequestRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'reason' => ['nullable', 'string', 'max:500'],
+            'reason' => ['required', 'string', 'min:3', 'max:500'],
+        ];
+    }
+
+    public function messages(): array
+    {
+        return [
+            'reason.required' => 'Reject reason is required.',
+            'reason.min' => 'Reject reason must be at least :min characters.',
+            'reason.max' => 'Reject reason may not be greater than :max characters.',
         ];
     }
 }

@@ -17,6 +17,7 @@ export type PurchaseRequestStatusHistoryDto = {
     action: string;
     actor_user_id: number | null;
     actor?: { id: number; name: string; email: string } | null;
+    meta?: Record<string, any> | null;
     created_at: string;
 };
 

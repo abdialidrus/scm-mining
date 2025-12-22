@@ -17,6 +17,7 @@ class PurchaseRequestStatusHistory extends Model
         'to_status',
         'action',
         'actor_user_id',
+        'meta',
         'created_at',
     ];
 
@@ -24,6 +25,7 @@ class PurchaseRequestStatusHistory extends Model
     {
         return [
             'created_at' => 'datetime',
+            'meta' => 'array',
         ];
     }
 

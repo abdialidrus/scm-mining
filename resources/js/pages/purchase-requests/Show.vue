@@ -1,6 +1,15 @@
 <script setup lang="ts">
 import Button from '@/components/ui/button/Button.vue';
 import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+} from '@/components/ui/dialog';
+import Input from '@/components/ui/input/Input.vue';
+import {
     Table,
     TableBody,
     TableCell,
@@ -27,6 +36,11 @@ const pr = ref<PurchaseRequestDto | null>(null);
 
 const status = computed(() => pr.value?.status);
 
+const rejectOpen = ref(false);
+const rejectReason = ref('');
+const rejectSubmitting = ref(false);
+const fieldErrors = ref<Record<string, string[]>>({});
+
 async function load() {
     loading.value = true;
     error.value = null;
@@ -40,13 +54,31 @@ async function load() {
     }
 }
 
+function formatDateTime(value?: string | null) {
+    if (!value) return '-';
+    const d = new Date(value);
+    if (Number.isNaN(d.getTime())) return value;
+    return new Intl.DateTimeFormat('id-ID', {
+        year: 'numeric',
+        month: 'short',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+    }).format(d);
+}
+
+function setApiError(e: any, fallback: string) {
+    error.value = e?.payload?.message ?? e?.message ?? fallback;
+    fieldErrors.value = (e?.payload?.errors ?? {}) as Record<string, string[]>;
+}
+
 async function submit() {
     if (!pr.value) return;
     try {
         await submitPurchaseRequest(pr.value.id);
         await load();
     } catch (e: any) {
-        error.value = e?.payload?.message ?? e?.message ?? 'Failed to submit';
+        setApiError(e, 'Failed to submit');
     }
 }
 
@@ -56,18 +88,38 @@ async function approve() {
         await approvePurchaseRequest(pr.value.id);
         await load();
     } catch (e: any) {
-        error.value = e?.payload?.message ?? e?.message ?? 'Failed to approve';
+        setApiError(e, 'Failed to approve');
     }
 }
 
-async function reject() {
+async function confirmReject() {
     if (!pr.value) return;
+
+    rejectSubmitting.value = true;
+    error.value = null;
+    fieldErrors.value = {};
+
     try {
-        await rejectPurchaseRequest(pr.value.id, 'Rejected from UI');
+        await rejectPurchaseRequest(pr.value.id, rejectReason.value.trim());
+        rejectOpen.value = false;
+        rejectReason.value = '';
         await load();
     } catch (e: any) {
-        error.value = e?.payload?.message ?? e?.message ?? 'Failed to reject';
+        setApiError(e, 'Failed to reject');
+    } finally {
+        rejectSubmitting.value = false;
     }
+}
+
+function openReject() {
+    rejectReason.value = '';
+    fieldErrors.value = {};
+    rejectOpen.value = true;
+}
+
+function doPrint() {
+    // In browser context, Inertia page runs on client.
+    globalThis?.print?.();
 }
 
 onMounted(load);
@@ -108,7 +160,16 @@ onMounted(load);
             v-if="error"
             class="mt-4 rounded-md border border-destructive/40 bg-destructive/10 p-3 text-sm"
         >
-            {{ error }}
+            <div class="font-medium">{{ error }}</div>
+            <ul
+                v-if="Object.keys(fieldErrors).length"
+                class="mt-2 list-disc pl-5"
+            >
+                <li v-for="(errs, k) in fieldErrors" :key="k">
+                    <span class="font-medium">{{ k }}:</span>
+                    {{ errs.join(', ') }}
+                </li>
+            </ul>
         </div>
 
         <div v-if="loading" class="mt-6 text-sm text-muted-foreground">
@@ -208,6 +269,7 @@ onMounted(load);
                                     <TableHead>From</TableHead>
                                     <TableHead>To</TableHead>
                                     <TableHead>Actor</TableHead>
+                                    <TableHead>Note</TableHead>
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
@@ -215,7 +277,9 @@ onMounted(load);
                                     v-for="h in pr.status_histories ?? []"
                                     :key="h.id"
                                 >
-                                    <TableCell>{{ h.created_at }}</TableCell>
+                                    <TableCell>{{
+                                        formatDateTime(h.created_at)
+                                    }}</TableCell>
                                     <TableCell class="font-medium">{{
                                         h.action
                                     }}</TableCell>
@@ -226,6 +290,16 @@ onMounted(load);
                                     <TableCell>{{
                                         h.actor?.name ?? h.actor_user_id ?? '-'
                                     }}</TableCell>
+                                    <TableCell>
+                                        <span v-if="h.action === 'reject'">
+                                            {{ h.meta?.reason ?? '-' }}
+                                        </span>
+                                        <span
+                                            v-else
+                                            class="text-muted-foreground"
+                                            >-</span
+                                        >
+                                    </TableCell>
                                 </TableRow>
 
                                 <TableRow
@@ -234,7 +308,7 @@ onMounted(load);
                                     "
                                 >
                                     <TableCell
-                                        colspan="5"
+                                        colspan="6"
                                         class="py-6 text-center text-muted-foreground"
                                     >
                                         No history.
@@ -256,11 +330,65 @@ onMounted(load);
                 <Button
                     v-if="status === 'SUBMITTED'"
                     variant="destructive"
-                    @click="reject"
+                    @click="openReject"
                 >
                     Reject
+                </Button>
+
+                <Button
+                    v-if="pr"
+                    variant="outline"
+                    type="button"
+                    @click="doPrint"
+                >
+                    Print
                 </Button>
             </div>
         </div>
     </AppLayout>
+
+    <Dialog v-model:open="rejectOpen">
+        <DialogContent>
+            <DialogHeader>
+                <DialogTitle>Reject Purchase Request</DialogTitle>
+                <DialogDescription>
+                    Please provide a reason. This PR will return to DRAFT.
+                </DialogDescription>
+            </DialogHeader>
+
+            <div class="space-y-2">
+                <label class="text-sm font-medium">Reason</label>
+                <Input
+                    v-model="rejectReason"
+                    placeholder="Type reject reason"
+                    :disabled="rejectSubmitting"
+                />
+                <div
+                    v-if="fieldErrors.reason?.length"
+                    class="text-sm text-destructive"
+                >
+                    {{ fieldErrors.reason.join(', ') }}
+                </div>
+            </div>
+
+            <DialogFooter>
+                <Button
+                    type="button"
+                    variant="outline"
+                    :disabled="rejectSubmitting"
+                    @click="rejectOpen = false"
+                >
+                    Cancel
+                </Button>
+                <Button
+                    type="button"
+                    variant="destructive"
+                    :disabled="rejectSubmitting"
+                    @click="confirmReject"
+                >
+                    Reject
+                </Button>
+            </DialogFooter>
+        </DialogContent>
+    </Dialog>
 </template>

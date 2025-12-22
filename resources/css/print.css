@@ -1,0 +1,36 @@
+@media print {
+    /* Hide application chrome */
+    nav,
+    aside,
+    header,
+    footer,
+    button,
+    .no-print {
+        display: none !important;
+    }
+
+    /* Ensure content uses full width */
+    main,
+    #app {
+        padding: 0 !important;
+        margin: 0 !important;
+    }
+
+    /* Better table printing */
+    table {
+        width: 100% !important;
+        border-collapse: collapse !important;
+    }
+
+    th,
+    td {
+        border: 1px solid #ccc !important;
+        padding: 6px 8px !important;
+    }
+
+    /* Avoid breaking inside cards */
+    .print-block {
+        break-inside: avoid;
+        page-break-inside: avoid;
+    }
+}

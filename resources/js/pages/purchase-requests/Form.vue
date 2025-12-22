@@ -139,9 +139,17 @@ function onSelectItem(line: {
     }
 }
 
+const fieldErrors = ref<Record<string, string[]>>({});
+
+function setApiError(e: any, fallback: string) {
+    error.value = e?.payload?.message ?? e?.message ?? fallback;
+    fieldErrors.value = (e?.payload?.errors ?? {}) as Record<string, string[]>;
+}
+
 async function save() {
     saving.value = true;
     error.value = null;
+    fieldErrors.value = {};
 
     try {
         const payload = {
@@ -157,8 +165,9 @@ async function save() {
                 })),
         };
 
-        if (!payload.lines.length)
-            throw new Error('At least 1 line is required');
+        if (!payload.lines.length) {
+            throw new Error('At least 1 line is required.');
+        }
 
         if (isEdit.value) {
             await updatePurchaseRequest(props.purchaseRequestId as number, {
@@ -171,7 +180,7 @@ async function save() {
 
         router.visit('/purchase-requests');
     } catch (e: any) {
-        error.value = e?.payload?.message ?? e?.message ?? 'Failed to save';
+        setApiError(e, 'Failed to save');
     } finally {
         saving.value = false;
     }
@@ -209,7 +218,16 @@ onMounted(load);
             v-if="error"
             class="mt-4 rounded-md border border-destructive/40 bg-destructive/10 p-3 text-sm"
         >
-            {{ error }}
+            <div class="font-medium">{{ error }}</div>
+            <ul
+                v-if="Object.keys(fieldErrors).length"
+                class="mt-2 list-disc pl-5"
+            >
+                <li v-for="(errs, k) in fieldErrors" :key="k">
+                    <span class="font-medium">{{ k }}:</span>
+                    {{ errs.join(', ') }}
+                </li>
+            </ul>
         </div>
 
         <div v-if="loading" class="mt-6 text-sm text-muted-foreground">

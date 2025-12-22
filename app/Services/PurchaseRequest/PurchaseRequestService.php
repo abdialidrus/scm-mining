@@ -264,14 +264,13 @@ class PurchaseRequestService
         ?User $actor,
         array $meta = [],
     ): void {
-        // Persisting only explicit fields required by the audit spec.
-        // (Meta is intentionally ignored for now; reserved for future use.)
         PurchaseRequestStatusHistory::query()->create([
             'purchase_request_id' => $pr->id,
             'from_status' => $fromStatus,
             'to_status' => $toStatus,
             'action' => $action,
             'actor_user_id' => $actor?->id,
+            'meta' => empty($meta) ? null : $meta,
             'created_at' => now(),
         ]);
     }
