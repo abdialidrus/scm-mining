@@ -36,9 +36,7 @@ onMounted(load);
         <div class="flex items-center justify-between">
             <div>
                 <h1 class="text-xl font-semibold">Items</h1>
-                <p class="text-sm text-muted-foreground">
-                    Read-only (from legacy table).
-                </p>
+                <p class="text-sm text-muted-foreground">Read-only.</p>
             </div>
         </div>
 
@@ -67,19 +65,17 @@ onMounted(load);
             <table class="w-full text-sm">
                 <thead class="bg-muted/40 text-left">
                     <tr>
-                        <th class="px-3 py-2">Code</th>
+                        <th class="px-3 py-2">SKU</th>
                         <th class="px-3 py-2">Name</th>
-                        <th class="px-3 py-2">UOM</th>
+                        <th class="px-3 py-2">Base UOM</th>
                         <th class="px-3 py-2">ID</th>
                     </tr>
                 </thead>
                 <tbody>
                     <tr v-for="it in items" :key="it.id" class="border-t">
-                        <td class="px-3 py-2 font-medium">
-                            {{ it.item_code }}
-                        </td>
-                        <td class="px-3 py-2">{{ it.item_name }}</td>
-                        <td class="px-3 py-2">{{ it.uom }}</td>
+                        <td class="px-3 py-2 font-medium">{{ it.sku }}</td>
+                        <td class="px-3 py-2">{{ it.name }}</td>
+                        <td class="px-3 py-2">{{ it.base_uom_code ?? '-' }}</td>
                         <td class="px-3 py-2">{{ it.id }}</td>
                     </tr>
                     <tr v-if="items.length === 0" class="border-t">

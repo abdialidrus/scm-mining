@@ -15,13 +15,21 @@ class ItemController extends Controller
         $limit = min(max((int) $request->query('limit', 20), 1), 50);
 
         $query = DB::table('items')
-            ->select(['id', 'item_code', 'item_name', 'uom'])
-            ->orderBy('item_name');
+            ->leftJoin('uoms', 'uoms.id', '=', 'items.base_uom_id')
+            ->select([
+                'items.id',
+                'items.sku',
+                'items.name',
+                'items.base_uom_id',
+                DB::raw('uoms.code as base_uom_code'),
+                DB::raw('uoms.name as base_uom_name'),
+            ])
+            ->orderBy('items.name');
 
         if ($search !== '') {
             $query->where(function ($q) use ($search) {
-                $q->where('item_code', 'ilike', '%' . $search . '%')
-                    ->orWhere('item_name', 'ilike', '%' . $search . '%');
+                $q->where('items.sku', 'ilike', '%' . $search . '%')
+                    ->orWhere('items.name', 'ilike', '%' . $search . '%');
             });
         }
 
