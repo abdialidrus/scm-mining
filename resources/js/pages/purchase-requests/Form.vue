@@ -13,7 +13,7 @@ import {
     type PurchaseRequestDto,
     type UomDto,
 } from '@/services/purchaseRequestApi';
-import { Head, Link, router } from '@inertiajs/vue3';
+import { Head, Link, router, usePage } from '@inertiajs/vue3';
 import { computed, onMounted, reactive, ref } from 'vue';
 
 const props = defineProps<{ purchaseRequestId: number | null }>();
@@ -26,6 +26,11 @@ const uoms = ref<UomDto[]>([]);
 const items = ref<ItemDto[]>([]);
 const itemSearch = ref('');
 const departments = ref<DepartmentDto[]>([]);
+
+const page = usePage();
+const userDepartmentId = computed(
+    () => (page.props.auth?.user as any)?.department_id ?? null,
+);
 
 const form = reactive({
     department_id: 1,
@@ -80,7 +85,19 @@ async function load() {
 
     try {
         await loadMasters();
+
+        // For CREATE: force department_id to user's department.
+        // For EDIT: department_id comes from PR payload.
+        if (!isEdit.value && userDepartmentId.value) {
+            form.department_id = Number(userDepartmentId.value);
+        }
+
         await loadExisting();
+
+        // If departments loaded and user has department, keep it consistent.
+        if (!isEdit.value && userDepartmentId.value) {
+            form.department_id = Number(userDepartmentId.value);
+        }
     } catch (e: any) {
         error.value = e?.message ?? 'Failed to load form';
     } finally {
@@ -190,7 +207,8 @@ onMounted(load);
                         <label class="text-sm font-medium">Department</label>
                         <select
                             v-model.number="form.department_id"
-                            class="mt-1 w-full rounded-md border bg-background px-2 py-2"
+                            :disabled="true"
+                            class="mt-1 w-full rounded-md border bg-background px-2 py-2 disabled:cursor-not-allowed disabled:opacity-60"
                         >
                             <option
                                 v-for="d in departments"
@@ -201,7 +219,8 @@ onMounted(load);
                             </option>
                         </select>
                         <p class="mt-1 text-xs text-muted-foreground">
-                            Department must match your user department.
+                            This is set from your user department and cannot be
+                            changed.
                         </p>
                     </div>
 
