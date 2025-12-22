@@ -158,6 +158,37 @@ async function reopen() {
     }
 }
 
+function round2(n: number): number {
+    return Math.round((n + Number.EPSILON) * 100) / 100;
+}
+
+const computedSubtotal = computed(() => {
+    const lines = po.value?.lines ?? [];
+    return round2(
+        lines.reduce(
+            (sum, l) => sum + Number(l.quantity) * Number(l.unit_price),
+            0,
+        ),
+    );
+});
+
+const computedTax = computed(() => {
+    const rate = Number(po.value?.tax_rate ?? 0);
+    return round2(computedSubtotal.value * rate);
+});
+
+const computedTotal = computed(() =>
+    round2(computedSubtotal.value + computedTax.value),
+);
+
+const displaySubtotal = computed(
+    () => po.value?.subtotal_amount ?? computedSubtotal.value,
+);
+const displayTax = computed(() => po.value?.tax_amount ?? computedTax.value);
+const displayTotal = computed(
+    () => po.value?.total_amount ?? computedTotal.value,
+);
+
 onMounted(load);
 </script>
 
@@ -256,7 +287,7 @@ onMounted(load);
 
         <div v-else-if="po" class="mt-6 space-y-6">
             <div class="rounded-lg border p-4">
-                <div class="grid gap-2 md:grid-cols-2">
+                <div class="grid gap-2 md:grid-cols-3">
                     <div>
                         <span class="text-xs text-muted-foreground"
                             >Supplier</span
@@ -272,6 +303,7 @@ onMounted(load);
                              {{ po.supplier?.name ?? po.supplier_id }}
                         </template>
                     </div>
+
                     <div>
                         <span class="text-xs text-muted-foreground"
                             >Currency</span
@@ -285,6 +317,14 @@ onMounted(load);
                         </template>
                         <template v-else>  {{ po.currency_code }} </template>
                     </div>
+
+                    <div>
+                        <span class="text-xs text-muted-foreground"
+                            >Status</span
+                        >
+                         {{ po.status }}
+                    </div>
+
                     <div>
                         <span class="text-xs text-muted-foreground"
                             >Tax Rate</span
@@ -301,11 +341,32 @@ onMounted(load);
                         </template>
                         <template v-else>  {{ po.tax_rate }} </template>
                     </div>
+
                     <div>
                         <span class="text-xs text-muted-foreground"
-                            >Status</span
+                            >Subtotal</span
                         >
-                         {{ po.status }}
+                        <div class="mt-1 text-sm font-medium">
+                            {{ po.currency_code }} {{ displaySubtotal }}
+                        </div>
+                    </div>
+
+                    <div>
+                        <span class="text-xs text-muted-foreground">PPN</span>
+                        <div class="mt-1 text-sm font-medium">
+                            {{ po.currency_code }} {{ displayTax }}
+                        </div>
+                    </div>
+
+                    <div class="md:col-span-3">
+                        <div
+                            class="mt-2 flex items-center justify-between rounded-md border bg-muted/20 px-3 py-2"
+                        >
+                            <div class="text-sm font-semibold">Grand Total</div>
+                            <div class="text-base font-semibold">
+                                {{ po.currency_code }} {{ displayTotal }}
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -360,6 +421,39 @@ onMounted(load);
                                         <template v-else>
                                             {{ l.unit_price }}
                                         </template>
+                                    </TableCell>
+                                </TableRow>
+
+                                <TableRow v-if="po.lines.length > 0">
+                                    <TableCell
+                                        colspan="3"
+                                        class="text-right font-medium"
+                                        >Subtotal</TableCell
+                                    >
+                                    <TableCell class="text-right font-medium">
+                                        {{ po.currency_code }}
+                                        {{ displaySubtotal }}
+                                    </TableCell>
+                                </TableRow>
+                                <TableRow v-if="po.lines.length > 0">
+                                    <TableCell
+                                        colspan="3"
+                                        class="text-right font-medium"
+                                        >PPN</TableCell
+                                    >
+                                    <TableCell class="text-right font-medium">
+                                        {{ po.currency_code }} {{ displayTax }}
+                                    </TableCell>
+                                </TableRow>
+                                <TableRow v-if="po.lines.length > 0">
+                                    <TableCell
+                                        colspan="3"
+                                        class="text-right font-semibold"
+                                        >Grand Total</TableCell
+                                    >
+                                    <TableCell class="text-right font-semibold">
+                                        {{ po.currency_code }}
+                                        {{ displayTotal }}
                                     </TableCell>
                                 </TableRow>
 

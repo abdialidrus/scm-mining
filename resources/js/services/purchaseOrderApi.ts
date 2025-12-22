@@ -34,6 +34,11 @@ export type PurchaseOrderDto = {
     currency_code: string;
     tax_rate: number;
 
+    subtotal_amount?: number | string | null;
+    tax_amount?: number | string | null;
+    total_amount?: number | string | null;
+    totals_snapshot?: Record<string, any> | null;
+
     supplier_snapshot?: Record<string, any> | null;
     tax_snapshot?: Record<string, any> | null;
 

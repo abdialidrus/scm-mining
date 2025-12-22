@@ -104,7 +104,7 @@ onMounted(load);
                     <option value="">All</option>
                     <option value="DRAFT">DRAFT</option>
                     <option value="SUBMITTED">SUBMITTED</option>
-                    <option value="IN_APPROVAL">IN_APPROVAL</option>
+                    <option value="IN_APPROVAL">IN APPROVAL</option>
                     <option value="APPROVED">APPROVED</option>
                     <option value="SENT">SENT</option>
                     <option value="CLOSED">CLOSED</option>
@@ -131,7 +131,7 @@ onMounted(load);
         </div>
 
         <div v-if="loading" class="mt-6 text-sm text-muted-foreground">
-            Loading
+            Loading...
         </div>
 
         <div v-else class="mt-6 overflow-hidden rounded-lg border">
@@ -142,6 +142,7 @@ onMounted(load);
                         <TableHead>Supplier</TableHead>
                         <TableHead>Status</TableHead>
                         <TableHead>Currency</TableHead>
+                        <TableHead class="text-right">Total</TableHead>
                         <TableHead>Created</TableHead>
                     </TableRow>
                 </TableHeader>
@@ -160,12 +161,15 @@ onMounted(load);
                         }}</TableCell>
                         <TableCell>{{ po.status }}</TableCell>
                         <TableCell>{{ po.currency_code }}</TableCell>
+                        <TableCell class="text-right">{{
+                            po.total_amount ?? '-'
+                        }}</TableCell>
                         <TableCell>{{ po.created_at ?? '-' }}</TableCell>
                     </TableRow>
 
                     <TableRow v-if="items.length === 0">
                         <TableCell
-                            colspan="5"
+                            colspan="6"
                             class="py-6 text-center text-muted-foreground"
                         >
                             No purchase orders.

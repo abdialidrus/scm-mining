@@ -121,6 +121,9 @@ class PurchaseOrderService
 
             $this->syncLines($po, $lines);
 
+            // Persist totals for draft (helps UI and list page)
+            $this->recalculateAndPersistTotals($po, 'draft');
+
             // Mark PRs converted to PO (keeps old behavior)
             foreach ($prs as $pr) {
                 $from = $pr->status;
@@ -174,6 +177,9 @@ class PurchaseOrderService
             $po->submitted_at = now();
             $po->submitted_by_user_id = $actor->id;
             $po->save();
+
+            // Freeze totals snapshot at submit (approval/export/report should use these values)
+            $this->recalculateAndPersistTotals($po->refresh(), 'submitted');
 
             $this->recordStatusHistory($po, $from, $po->status, 'submit', $actor);
 
@@ -445,6 +451,9 @@ class PurchaseOrderService
                 'fields' => ['supplier_id', 'currency_code', 'tax_rate', 'lines.unit_price'],
             ]);
 
+            // Recalculate totals after unit price / tax changes
+            $this->recalculateAndPersistTotals($po->refresh(), 'draft');
+
             return $this->loadForShow($po->refresh());
         });
     }
@@ -596,5 +605,41 @@ class PurchaseOrderService
             'submittedBy',
             'approvedBy',
         ]);
+    }
+
+    private function recalculateAndPersistTotals(PurchaseOrder $po, string $stage): void
+    {
+        $po->loadMissing(['lines']);
+
+        $subtotal = 0.0;
+        foreach ($po->lines as $line) {
+            /** @var PurchaseOrderLine $line */
+            $lineAmount = round(((float) $line->quantity) * ((float) $line->unit_price), 2);
+            $subtotal += $lineAmount;
+        }
+
+        $subtotal = round($subtotal, 2);
+        $tax = round($subtotal * ((float) $po->tax_rate), 2);
+        $total = round($subtotal + $tax, 2);
+
+        $po->subtotal_amount = $subtotal;
+        $po->tax_amount = $tax;
+        $po->total_amount = $total;
+
+        // Snapshot the computation rule for long-term audit / export consistency.
+        $po->totals_snapshot = [
+            'stage' => $stage,
+            'computed_at' => now()->toISOString(),
+            'currency_code' => $po->currency_code,
+            'tax_rate' => (float) $po->tax_rate,
+            'rounding' => [
+                'scale' => 2,
+                'mode' => 'half_up',
+                'line_amount_formula' => 'round(qty * unit_price, 2)',
+                'tax_formula' => 'round(subtotal * tax_rate, 2)',
+            ],
+        ];
+
+        $po->save();
     }
 }
