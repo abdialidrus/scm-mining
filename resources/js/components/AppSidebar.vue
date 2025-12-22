@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import NavFooter from '@/components/NavFooter.vue';
 import NavMain from '@/components/NavMain.vue';
 import NavUser from '@/components/NavUser.vue';
 import {
@@ -36,23 +35,35 @@ const mainNavItems: NavItem[] = [
         href: '/purchase-requests',
         icon: FileText,
     },
+];
+
+const procurementNavItems: NavItem[] = [
     {
-        title: 'Master - Items',
-        href: '/master-data/items',
-        icon: Package,
+        title: 'Purchase Requests',
+        href: '/purchase-requests',
+        icon: FileText,
     },
+];
+
+const masterDataNavItems: NavItem[] = [
     {
-        title: 'Master - UOMs',
-        href: '/master-data/uoms',
-        icon: Ruler,
-    },
-    {
-        title: 'Master - Departments',
+        title: 'Departments',
         href: '/master-data/departments',
         icon: Users,
     },
     {
-        title: 'Master - Users',
+        title: 'Items',
+        href: '/master-data/items',
+        icon: Package,
+    },
+    {
+        title: 'UOMs',
+        href: '/master-data/uoms',
+        icon: Ruler,
+    },
+
+    {
+        title: 'Users',
         href: '/master-data/users',
         icon: Users,
     },
@@ -87,11 +98,13 @@ const footerNavItems: NavItem[] = [
         </SidebarHeader>
 
         <SidebarContent>
-            <NavMain :items="mainNavItems" />
+            <NavMain :title="'Main'" :items="mainNavItems" />
+            <NavMain :title="'Procurement'" :items="procurementNavItems" />
+            <NavMain :title="'Master Data'" :items="masterDataNavItems" />
         </SidebarContent>
 
         <SidebarFooter>
-            <NavFooter :items="footerNavItems" />
+            <!-- <NavFooter :items="footerNavItems" /> -->
             <NavUser />
         </SidebarFooter>
     </Sidebar>
