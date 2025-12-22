@@ -3,7 +3,9 @@
 namespace App\Providers;
 
 use App\Models\PurchaseRequest;
+use App\Models\User;
 use App\Policies\PurchaseRequestPolicy;
+use App\Policies\UserPolicy;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
 
@@ -23,6 +25,7 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         Gate::policy(PurchaseRequest::class, PurchaseRequestPolicy::class);
+        Gate::policy(User::class, UserPolicy::class);
     }
 
     protected $policies = [];

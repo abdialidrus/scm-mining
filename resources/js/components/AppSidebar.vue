@@ -51,6 +51,11 @@ const mainNavItems: NavItem[] = [
         href: '/master-data/departments',
         icon: Users,
     },
+    {
+        title: 'Master - Users',
+        href: '/master-data/users',
+        icon: Users,
+    },
 ];
 
 const footerNavItems: NavItem[] = [

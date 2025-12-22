@@ -3,7 +3,9 @@
 use App\Http\Controllers\Api\DepartmentController;
 use App\Http\Controllers\Api\ItemController;
 use App\Http\Controllers\Api\PurchaseRequestController;
+use App\Http\Controllers\Api\RoleController;
 use App\Http\Controllers\Api\UomController;
+use App\Http\Controllers\Api\UserController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -27,4 +29,12 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/{purchaseRequest}/reject', [PurchaseRequestController::class, 'reject']);
         Route::post('/{purchaseRequest}/convert-to-po', [PurchaseRequestController::class, 'convertToPo']);
     });
+
+    Route::get('/roles', [RoleController::class, 'index']);
+
+    Route::get('/users', [UserController::class, 'index']);
+    Route::post('/users', [UserController::class, 'store']);
+    Route::get('/users/{user}', [UserController::class, 'show']);
+    Route::put('/users/{user}', [UserController::class, 'update']);
+    Route::delete('/users/{user}', [UserController::class, 'destroy']);
 });

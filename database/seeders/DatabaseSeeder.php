@@ -6,6 +6,7 @@ use App\Models\User;
 // use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
+use Spatie\Permission\Models\Role;
 
 class DatabaseSeeder extends Seeder
 {
@@ -20,7 +21,7 @@ class DatabaseSeeder extends Seeder
         $this->call(DepartmentSeeder::class);
         $this->call(ItemSeeder::class);
 
-        User::query()->updateOrCreate(
+        $user = User::query()->updateOrCreate(
             ['email' => 'superadmin@gmail.com'],
             [
                 'name' => 'Super Admin',
@@ -28,5 +29,10 @@ class DatabaseSeeder extends Seeder
                 'department_id' => 1,
             ],
         );
+
+        $superAdminRole = Role::query()->where('name', 'super_admin')->first();
+        if ($superAdminRole) {
+            $user->syncRoles([$superAdminRole]);
+        }
     }
 }

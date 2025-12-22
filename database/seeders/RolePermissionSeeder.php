@@ -41,5 +41,9 @@ class RolePermissionSeeder extends Seeder
 
         $warehouse = Role::query()->firstOrCreate(['name' => 'warehouse', 'guard_name' => 'web']);
         $warehouse->givePermissionTo(['receive goods', 'put away', 'pick items']);
+
+        // Super admin has all permissions.
+        $superAdmin = Role::query()->firstOrCreate(['name' => 'super_admin', 'guard_name' => 'web']);
+        $superAdmin->syncPermissions(Permission::query()->pluck('name')->all());
     }
 }
