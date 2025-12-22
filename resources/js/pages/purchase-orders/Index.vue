@@ -10,6 +10,7 @@ import {
     TableRow,
 } from '@/components/ui/table';
 import AppLayout from '@/layouts/AppLayout.vue';
+import { formatCurrency } from '@/lib/format';
 import {
     listPurchaseOrders,
     type PurchaseOrderDto,
@@ -162,7 +163,11 @@ onMounted(load);
                         <TableCell>{{ po.status }}</TableCell>
                         <TableCell>{{ po.currency_code }}</TableCell>
                         <TableCell class="text-right">{{
-                            po.total_amount ?? '-'
+                            po.total_amount == null
+                                ? '-'
+                                : formatCurrency(po.total_amount as any, {
+                                      currency: po.currency_code,
+                                  })
                         }}</TableCell>
                         <TableCell>{{ po.created_at ?? '-' }}</TableCell>
                     </TableRow>

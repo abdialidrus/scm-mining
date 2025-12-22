@@ -113,7 +113,7 @@ onMounted(load);
         </div>
 
         <div v-if="loading" class="mt-6 text-sm text-muted-foreground">
-            Loading
+            Loading...
         </div>
 
         <div v-else class="mt-6 grid gap-6 md:grid-cols-2">
@@ -250,7 +250,7 @@ onMounted(load);
                             :disabled="!canSave || saving"
                             @click="save"
                         >
-                            {{ saving ? 'Creating' : 'Create PO Draft' }}
+                            {{ saving ? 'Creating...' : 'Create PO Draft' }}
                         </Button>
                     </div>
                 </div>

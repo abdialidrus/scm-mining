@@ -9,7 +9,7 @@ import {
     TableRow,
 } from '@/components/ui/table';
 import AppLayout from '@/layouts/AppLayout.vue';
-import { formatQty } from '@/lib/format';
+import { formatCurrency, formatQty } from '@/lib/format';
 import {
     approvePurchaseOrder,
     cancelPurchaseOrder,
@@ -202,7 +202,7 @@ onMounted(load);
                     {{ po?.po_number ?? 'PO' }}
                 </h1>
                 <p class="text-sm text-muted-foreground">
-                    {{ po?.supplier?.name ?? po?.supplier_id }} 
+                    {{ po?.supplier?.name ?? po?.supplier_id }}
                     {{ po?.status ?? '' }}
                 </p>
             </div>
@@ -282,7 +282,7 @@ onMounted(load);
         </div>
 
         <div v-if="loading" class="mt-6 text-sm text-muted-foreground">
-            Loading
+            Loading...
         </div>
 
         <div v-else-if="po" class="mt-6 space-y-6">
@@ -300,7 +300,7 @@ onMounted(load);
                             />
                         </template>
                         <template v-else>
-                             {{ po.supplier?.name ?? po.supplier_id }}
+                            {{ po.supplier?.name ?? po.supplier_id }}
                         </template>
                     </div>
 
@@ -315,14 +315,14 @@ onMounted(load);
                                 class="mt-1 w-full rounded-md border bg-background px-2 py-1 text-sm"
                             />
                         </template>
-                        <template v-else>  {{ po.currency_code }} </template>
+                        <template v-else> {{ po.currency_code }} </template>
                     </div>
 
                     <div>
                         <span class="text-xs text-muted-foreground"
                             >Status</span
                         >
-                         {{ po.status }}
+                        {{ po.status }}
                     </div>
 
                     <div>
@@ -339,7 +339,7 @@ onMounted(load);
                                 class="mt-1 w-full rounded-md border bg-background px-2 py-1 text-sm"
                             />
                         </template>
-                        <template v-else>  {{ po.tax_rate }} </template>
+                        <template v-else> {{ po.tax_rate }} </template>
                     </div>
 
                     <div>
@@ -347,14 +347,22 @@ onMounted(load);
                             >Subtotal</span
                         >
                         <div class="mt-1 text-sm font-medium">
-                            {{ po.currency_code }} {{ displaySubtotal }}
+                            {{
+                                formatCurrency(displaySubtotal as any, {
+                                    currency: po.currency_code,
+                                })
+                            }}
                         </div>
                     </div>
 
                     <div>
                         <span class="text-xs text-muted-foreground">PPN</span>
                         <div class="mt-1 text-sm font-medium">
-                            {{ po.currency_code }} {{ displayTax }}
+                            {{
+                                formatCurrency(displayTax as any, {
+                                    currency: po.currency_code,
+                                })
+                            }}
                         </div>
                     </div>
 
@@ -364,7 +372,11 @@ onMounted(load);
                         >
                             <div class="text-sm font-semibold">Grand Total</div>
                             <div class="text-base font-semibold">
-                                {{ po.currency_code }} {{ displayTotal }}
+                                {{
+                                    formatCurrency(displayTotal as any, {
+                                        currency: po.currency_code,
+                                    })
+                                }}
                             </div>
                         </div>
                     </div>
@@ -396,7 +408,7 @@ onMounted(load);
                                     :key="l.id"
                                 >
                                     <TableCell>
-                                        {{ l.item?.sku ?? l.item_id }} 
+                                        {{ l.item?.sku ?? l.item_id }}
                                         {{ l.item?.name ?? '' }}
                                     </TableCell>
                                     <TableCell class="text-right">{{
@@ -419,8 +431,16 @@ onMounted(load);
                                             />
                                         </template>
                                         <template v-else>
-                                            {{ l.unit_price }}
-                                        </template>
+                                            {{
+                                                formatCurrency(
+                                                    l.unit_price as any,
+                                                    {
+                                                        currency:
+                                                            po.currency_code,
+                                                    },
+                                                )
+                                            }}</template
+                                        >
                                     </TableCell>
                                 </TableRow>
 
@@ -431,8 +451,14 @@ onMounted(load);
                                         >Subtotal</TableCell
                                     >
                                     <TableCell class="text-right font-medium">
-                                        {{ po.currency_code }}
-                                        {{ displaySubtotal }}
+                                        {{
+                                            formatCurrency(
+                                                displaySubtotal as any,
+                                                {
+                                                    currency: po.currency_code,
+                                                },
+                                            )
+                                        }}
                                     </TableCell>
                                 </TableRow>
                                 <TableRow v-if="po.lines.length > 0">
@@ -442,7 +468,11 @@ onMounted(load);
                                         >PPN</TableCell
                                     >
                                     <TableCell class="text-right font-medium">
-                                        {{ po.currency_code }} {{ displayTax }}
+                                        {{
+                                            formatCurrency(displayTax as any, {
+                                                currency: po.currency_code,
+                                            })
+                                        }}
                                     </TableCell>
                                 </TableRow>
                                 <TableRow v-if="po.lines.length > 0">
@@ -452,8 +482,14 @@ onMounted(load);
                                         >Grand Total</TableCell
                                     >
                                     <TableCell class="text-right font-semibold">
-                                        {{ po.currency_code }}
-                                        {{ displayTotal }}
+                                        {{
+                                            formatCurrency(
+                                                displayTotal as any,
+                                                {
+                                                    currency: po.currency_code,
+                                                },
+                                            )
+                                        }}
                                     </TableCell>
                                 </TableRow>
 

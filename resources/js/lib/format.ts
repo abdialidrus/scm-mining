@@ -32,3 +32,44 @@ export function formatQty(
 
     return str;
 }
+
+/**
+ * Format currency numbers for UI.
+ *
+ * Uses Intl.NumberFormat with sensible defaults for IDR and other currencies.
+ */
+export function formatCurrency(
+    value: number | string | null | undefined,
+    opts?: {
+        currency?: string;
+        locale?: string;
+        minimumFractionDigits?: number;
+        maximumFractionDigits?: number;
+    },
+) {
+    if (value === null || value === undefined || value === '') return '-';
+
+    const n =
+        typeof value === 'number'
+            ? value
+            : Number(String(value).replace(',', '.'));
+
+    if (!Number.isFinite(n)) return String(value);
+
+    const currency = (opts?.currency ?? 'IDR').toUpperCase();
+    const locale = opts?.locale ?? 'id-ID';
+
+    // Common Indonesian convention: IDR shown with no decimals.
+    const defaultFraction = currency === 'IDR' ? 0 : 2;
+    const minimumFractionDigits =
+        opts?.minimumFractionDigits ?? defaultFraction;
+    const maximumFractionDigits =
+        opts?.maximumFractionDigits ?? defaultFraction;
+
+    return new Intl.NumberFormat(locale, {
+        style: 'currency',
+        currency,
+        minimumFractionDigits,
+        maximumFractionDigits,
+    }).format(n);
+}
