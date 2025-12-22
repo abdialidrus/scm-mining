@@ -1,5 +1,13 @@
 <script setup lang="ts">
 import Button from '@/components/ui/button/Button.vue';
+import {
+    Table,
+    TableBody,
+    TableCell,
+    TableHead,
+    TableHeader,
+    TableRow,
+} from '@/components/ui/table';
 import AppLayout from '@/layouts/AppLayout.vue';
 import {
     approvePurchaseRequest,
@@ -84,7 +92,11 @@ onMounted(load);
                     <Link href="/purchase-requests">Back</Link>
                 </Button>
 
-                <Button v-if="pr" variant="outline" as-child>
+                <Button
+                    v-if="pr && status === 'DRAFT'"
+                    variant="outline"
+                    as-child
+                >
                     <Link :href="`/purchase-requests/${pr.id}/edit`"
                         >Edit Draft</Link
                     >
@@ -108,15 +120,21 @@ onMounted(load);
                 <div class="grid gap-2 md:grid-cols-2">
                     <div>
                         <span class="text-xs text-muted-foreground"
-                            >Department ID</span
+                            >Department</span
                         >
-                        — {{ pr.department_id }}
+                        — {{ pr.department?.code ?? pr.department_id }}
                     </div>
                     <div>
                         <span class="text-xs text-muted-foreground"
-                            >Requester User ID</span
+                            >Requester</span
                         >
-                        — {{ pr.requester_user_id }}
+                        — {{ pr.requester?.name ?? pr.requester_user_id }}
+                    </div>
+                    <div v-if="pr.approvedBy" class="md:col-span-2">
+                        <span class="text-xs text-muted-foreground"
+                            >Approved By</span
+                        >
+                        — {{ pr.approvedBy.name }}
                     </div>
                     <div class="md:col-span-2">
                         <span class="text-xs text-muted-foreground"
@@ -132,32 +150,99 @@ onMounted(load);
                     <h2 class="text-sm font-semibold">Lines</h2>
                 </div>
                 <div class="p-4">
-                    <table class="w-full text-sm">
-                        <thead class="text-left text-muted-foreground">
-                            <tr>
-                                <th class="py-2">Item</th>
-                                <th class="py-2">Qty</th>
-                                <th class="py-2">UOM</th>
-                                <th class="py-2">Remarks</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr
-                                v-for="(l, idx) in pr.lines"
-                                :key="idx"
-                                class="border-t"
-                            >
-                                <td class="py-2">
-                                    {{ l.item?.item_name ?? l.item_id }}
-                                </td>
-                                <td class="py-2">{{ l.quantity }}</td>
-                                <td class="py-2">
-                                    {{ l.uom?.code ?? l.uom_id ?? '-' }}
-                                </td>
-                                <td class="py-2">{{ l.remarks ?? '-' }}</td>
-                            </tr>
-                        </tbody>
-                    </table>
+                    <div class="overflow-hidden rounded-lg border">
+                        <Table>
+                            <TableHeader class="bg-muted/40">
+                                <TableRow>
+                                    <TableHead>Item</TableHead>
+                                    <TableHead class="text-right"
+                                        >Qty</TableHead
+                                    >
+                                    <TableHead>UOM</TableHead>
+                                    <TableHead>Remarks</TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                <TableRow
+                                    v-for="(l, idx) in pr.lines"
+                                    :key="idx"
+                                >
+                                    <TableCell>
+                                        <span v-if="l.item"
+                                            >{{ l.item.sku }} —
+                                            {{ l.item.name }}</span
+                                        >
+                                        <span
+                                            v-else
+                                            class="text-muted-foreground"
+                                            >Item #{{ l.item_id }}</span
+                                        >
+                                    </TableCell>
+                                    <TableCell class="text-right">{{
+                                        l.quantity
+                                    }}</TableCell>
+                                    <TableCell>{{
+                                        l.uom?.code ?? l.uom_id ?? '-'
+                                    }}</TableCell>
+                                    <TableCell>{{
+                                        l.remarks ?? '-'
+                                    }}</TableCell>
+                                </TableRow>
+                            </TableBody>
+                        </Table>
+                    </div>
+                </div>
+            </div>
+
+            <div class="rounded-lg border">
+                <div class="border-b p-4">
+                    <h2 class="text-sm font-semibold">Audit History</h2>
+                </div>
+                <div class="p-4">
+                    <div class="overflow-hidden rounded-lg border">
+                        <Table>
+                            <TableHeader class="bg-muted/40">
+                                <TableRow>
+                                    <TableHead>At</TableHead>
+                                    <TableHead>Action</TableHead>
+                                    <TableHead>From</TableHead>
+                                    <TableHead>To</TableHead>
+                                    <TableHead>Actor</TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                <TableRow
+                                    v-for="h in pr.statusHistories ?? []"
+                                    :key="h.id"
+                                >
+                                    <TableCell>{{ h.created_at }}</TableCell>
+                                    <TableCell class="font-medium">{{
+                                        h.action
+                                    }}</TableCell>
+                                    <TableCell>{{
+                                        h.from_status ?? '-'
+                                    }}</TableCell>
+                                    <TableCell>{{ h.to_status }}</TableCell>
+                                    <TableCell>{{
+                                        h.actor?.name ?? h.actor_user_id ?? '-'
+                                    }}</TableCell>
+                                </TableRow>
+
+                                <TableRow
+                                    v-if="
+                                        (pr.statusHistories ?? []).length === 0
+                                    "
+                                >
+                                    <TableCell
+                                        colspan="5"
+                                        class="py-6 text-center text-muted-foreground"
+                                    >
+                                        No history.
+                                    </TableCell>
+                                </TableRow>
+                            </TableBody>
+                        </Table>
+                    </div>
                 </div>
             </div>
 
@@ -172,8 +257,9 @@ onMounted(load);
                     v-if="status === 'SUBMITTED'"
                     variant="destructive"
                     @click="reject"
-                    >Reject</Button
                 >
+                    Reject
+                </Button>
             </div>
         </div>
     </AppLayout>

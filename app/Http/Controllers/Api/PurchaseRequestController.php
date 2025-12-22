@@ -21,6 +21,9 @@ class PurchaseRequestController extends Controller
     {
         $user = $request->user();
 
+        $search = trim((string) $request->query('search', ''));
+        $status = trim((string) $request->query('status', ''));
+
         $query = PurchaseRequest::query()
             ->with(['department', 'requester'])
             ->orderByDesc('id');
@@ -30,8 +33,16 @@ class PurchaseRequestController extends Controller
             $query->where('department_id', $user->department_id);
         }
 
+        if ($status !== '') {
+            $query->where('status', $status);
+        }
+
+        if ($search !== '') {
+            $query->where('pr_number', 'ilike', '%' . $search . '%');
+        }
+
         return response()->json([
-            'data' => $query->paginate(20),
+            'data' => $query->paginate(20)->withQueryString(),
         ]);
     }
 
@@ -40,7 +51,14 @@ class PurchaseRequestController extends Controller
         $this->authorize('view', $purchaseRequest);
 
         return response()->json([
-            'data' => $purchaseRequest->load(['lines.item.baseUom', 'lines.uom', 'department.head', 'requester', 'approvedBy']),
+            'data' => $purchaseRequest->load([
+                'lines.item.baseUom',
+                'lines.uom',
+                'department.head',
+                'requester',
+                'approvedBy',
+                'statusHistories.actor',
+            ]),
         ]);
     }
 

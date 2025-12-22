@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import Button from '@/components/ui/button/Button.vue';
+import Input from '@/components/ui/input/Input.vue';
 import {
     Table,
     TableBody,
@@ -14,27 +15,64 @@ import {
     type PurchaseRequestListItemDto,
 } from '@/services/purchaseRequestApi';
 import { Head, Link, router } from '@inertiajs/vue3';
-import { onMounted, ref } from 'vue';
+import { computed, onMounted, ref } from 'vue';
 
 const loading = ref(true);
 const error = ref<string | null>(null);
 const items = ref<PurchaseRequestListItemDto[]>([]);
+
+const search = ref('');
+const status = ref<string>('');
+const page = ref(1);
+const hasNext = ref(false);
+const hasPrev = computed(() => page.value > 1);
 
 async function load() {
     loading.value = true;
     error.value = null;
 
     try {
-        const res = await listPurchaseRequests();
-        // Our API wraps paginator under { data: { data: [...] } }
-        // Keep defensive defaults in case shape changes.
-        const page = (res as any).data;
-        items.value = (page?.data ?? []) as PurchaseRequestListItemDto[];
+        const res = await listPurchaseRequests({
+            search: search.value || undefined,
+            status: status.value || undefined,
+            page: page.value,
+        });
+
+        const paginator = (res as any).data;
+        items.value = (paginator?.data ?? []) as PurchaseRequestListItemDto[];
+
+        // very simple pagination inference from meta
+        const currentPage =
+            paginator?.current_page ?? paginator?.meta?.current_page;
+        const lastPage = paginator?.last_page ?? paginator?.meta?.last_page;
+        if (typeof currentPage === 'number' && typeof lastPage === 'number') {
+            page.value = currentPage;
+            hasNext.value = currentPage < lastPage;
+        } else {
+            hasNext.value = false;
+        }
     } catch (e: any) {
         error.value = e?.message ?? 'Failed to load purchase requests';
     } finally {
         loading.value = false;
     }
+}
+
+function applyFilters() {
+    page.value = 1;
+    load();
+}
+
+function nextPage() {
+    if (!hasNext.value) return;
+    page.value += 1;
+    load();
+}
+
+function prevPage() {
+    if (!hasPrev.value) return;
+    page.value -= 1;
+    load();
 }
 
 onMounted(load);
@@ -50,6 +88,36 @@ onMounted(load);
             <Button as-child>
                 <Link href="/purchase-requests/create">Create</Link>
             </Button>
+        </div>
+
+        <div class="mt-6 grid gap-3 md:grid-cols-12">
+            <div class="md:col-span-6">
+                <label class="text-sm font-medium">Search</label>
+                <Input v-model="search" placeholder="PR number" />
+            </div>
+            <div class="md:col-span-4">
+                <label class="text-sm font-medium">Status</label>
+                <select
+                    v-model="status"
+                    class="mt-1 w-full rounded-md border bg-background px-2 py-2"
+                >
+                    <option value="">All</option>
+                    <option value="DRAFT">DRAFT</option>
+                    <option value="SUBMITTED">SUBMITTED</option>
+                    <option value="APPROVED">APPROVED</option>
+                    <option value="CONVERTED_TO_PO">CONVERTED_TO_PO</option>
+                </select>
+            </div>
+            <div class="flex items-end md:col-span-2">
+                <Button
+                    type="button"
+                    variant="outline"
+                    class="w-full"
+                    @click="applyFilters"
+                >
+                    Apply
+                </Button>
+            </div>
         </div>
 
         <div
@@ -96,6 +164,24 @@ onMounted(load);
                     </TableRow>
                 </TableBody>
             </Table>
+        </div>
+
+        <div class="mt-4 flex items-center justify-between">
+            <Button
+                variant="outline"
+                type="button"
+                :disabled="!hasPrev"
+                @click="prevPage"
+                >Previous</Button
+            >
+            <div class="text-sm text-muted-foreground">Page {{ page }}</div>
+            <Button
+                variant="outline"
+                type="button"
+                :disabled="!hasNext"
+                @click="nextPage"
+                >Next</Button
+            >
         </div>
     </AppLayout>
 </template>

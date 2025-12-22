@@ -10,12 +10,25 @@ export type ItemDto = {
     base_uom_name: string | null;
 };
 
+export type PurchaseRequestStatusHistoryDto = {
+    id: number;
+    from_status: string | null;
+    to_status: string;
+    action: string;
+    actor_user_id: number | null;
+    actor?: { id: number; name: string; email: string } | null;
+    created_at: string;
+};
+
 export type PurchaseRequestListItemDto = {
     id: number;
     pr_number: string;
     status: string;
     department_id: number;
     requester_user_id: number;
+    // optional when backend includes relations
+    department?: { id: number; code: string; name: string } | null;
+    requester?: { id: number; name: string; email: string } | null;
     created_at: string | null;
 };
 
@@ -26,7 +39,7 @@ export type PurchaseRequestLineDto = {
     quantity: number;
     uom_id?: number | null;
     remarks?: string | null;
-    item?: { id: number; item_name: string; item_code: string };
+    item?: { id: number; sku: string; name: string };
     uom?: UomDto;
 };
 
@@ -36,11 +49,15 @@ export type PurchaseRequestDto = {
     status: string;
     department_id: number;
     requester_user_id: number;
+    department?: { id: number; code: string; name: string } | null;
+    requester?: { id: number; name: string; email: string } | null;
+    approvedBy?: { id: number; name: string; email: string } | null;
     remarks?: string | null;
     submitted_at?: string | null;
     approved_at?: string | null;
     created_at?: string | null;
     lines: PurchaseRequestLineDto[];
+    statusHistories?: PurchaseRequestStatusHistoryDto[];
 };
 
 export type Paginated<T> = {
@@ -61,9 +78,19 @@ export async function fetchItems(params?: { search?: string; limit?: number }) {
     return apiFetch<{ data: ItemDto[] }>(`/api/items${suffix}`);
 }
 
-export async function listPurchaseRequests() {
+export async function listPurchaseRequests(params?: {
+    search?: string;
+    status?: string;
+    page?: number;
+}) {
+    const qs = new URLSearchParams();
+    if (params?.search) qs.set('search', params.search);
+    if (params?.status) qs.set('status', params.status);
+    if (params?.page) qs.set('page', String(params.page));
+    const suffix = qs.toString() ? `?${qs.toString()}` : '';
+
     return apiFetch<{ data: Paginated<PurchaseRequestListItemDto> }>(
-        `/api/purchase-requests`,
+        `/api/purchase-requests${suffix}`,
     );
 }
 

@@ -123,6 +123,22 @@ async function doSearchItems() {
     }
 }
 
+function onSelectItem(line: {
+    item_id: number;
+    quantity: number;
+    uom_id: number | null;
+    remarks: string;
+}) {
+    if (line.uom_id) return;
+
+    const it = items.value.find((x) => x.id === line.item_id);
+    if (!it) return;
+
+    if (it.base_uom_id) {
+        line.uom_id = it.base_uom_id;
+    }
+}
+
 async function save() {
     saving.value = true;
     error.value = null;
@@ -248,7 +264,7 @@ onMounted(load);
                         <label class="text-sm font-medium">Search Items</label>
                         <Input
                             v-model="itemSearch"
-                            placeholder="Search by code/name"
+                            placeholder="Search by SKU/name"
                         />
                     </div>
                     <Button
@@ -270,6 +286,7 @@ onMounted(load);
                             <select
                                 v-model.number="line.item_id"
                                 class="mt-1 w-full rounded-md border bg-background px-2 py-2"
+                                @change="onSelectItem(line)"
                             >
                                 <option :value="0">Select item…</option>
                                 <option
