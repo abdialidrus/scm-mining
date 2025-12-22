@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\PurchaseOrder\CancelPurchaseOrderRequest;
+use App\Http\Requests\Api\PurchaseOrder\PurchaseOrderReportRequest;
 use App\Http\Requests\Api\PurchaseOrder\ReopenPurchaseOrderRequest;
 use App\Http\Requests\Api\PurchaseOrder\StorePurchaseOrderRequest;
 use App\Http\Requests\Api\PurchaseOrder\UpdatePurchaseOrderDraftRequest;
@@ -136,5 +137,74 @@ class PurchaseOrderController extends Controller
         $po = $this->service->reopen($request->user(), $purchaseOrder->id, $request->validated()['reason'] ?? null);
 
         return response()->json(['data' => $po]);
+    }
+
+    public function report(PurchaseOrderReportRequest $request): JsonResponse
+    {
+        $this->authorize('viewAny', PurchaseOrder::class);
+
+        $data = $request->validated();
+
+        $dateField = $data['date_field'] ?? 'created_at';
+        $dateFrom = $data['date_from'] ?? null;
+        $dateTo = $data['date_to'] ?? null;
+        $status = $data['status'] ?? null;
+        $supplierId = $data['supplier_id'] ?? null;
+        $currencyCode = $data['currency_code'] ?? null;
+        $groupByStatus = (bool) ($data['group_by_status'] ?? false);
+
+        $query = PurchaseOrder::query()->whereNotNull('total_amount');
+
+        if ($status) {
+            $query->where('status', $status);
+        }
+
+        if ($supplierId) {
+            $query->where('supplier_id', (int) $supplierId);
+        }
+
+        if ($currencyCode) {
+            $query->where('currency_code', $currencyCode);
+        }
+
+        if ($dateFrom) {
+            $query->whereDate($dateField, '>=', $dateFrom);
+        }
+
+        if ($dateTo) {
+            $query->whereDate($dateField, '<=', $dateTo);
+        }
+
+        $count = (clone $query)->count();
+        $sumTotal = (clone $query)->sum('total_amount');
+        $sumSubtotal = (clone $query)->sum('subtotal_amount');
+        $sumTax = (clone $query)->sum('tax_amount');
+
+        $breakdownByStatus = null;
+        if ($groupByStatus) {
+            $breakdownByStatus = (clone $query)
+                ->selectRaw('status, COUNT(*) as po_count, COALESCE(SUM(subtotal_amount),0) as subtotal_sum, COALESCE(SUM(tax_amount),0) as tax_sum, COALESCE(SUM(total_amount),0) as total_sum')
+                ->groupBy('status')
+                ->orderBy('status')
+                ->get();
+        }
+
+        return response()->json([
+            'data' => [
+                'filters' => [
+                    'date_field' => $dateField,
+                    'date_from' => $dateFrom,
+                    'date_to' => $dateTo,
+                    'status' => $status,
+                    'supplier_id' => $supplierId,
+                    'currency_code' => $currencyCode,
+                ],
+                'count' => $count,
+                'subtotal_sum' => (float) $sumSubtotal,
+                'tax_sum' => (float) $sumTax,
+                'total_sum' => (float) $sumTotal,
+                'breakdown_by_status' => $breakdownByStatus,
+            ],
+        ]);
     }
 }

@@ -32,6 +32,8 @@ Route::middleware('auth:sanctum')->group(function () {
     });
 
     Route::prefix('purchase-orders')->group(function () {
+        Route::get('/report/summary', [PurchaseOrderController::class, 'report']);
+
         Route::get('/', [PurchaseOrderController::class, 'index']);
         Route::post('/', [PurchaseOrderController::class, 'store']);
         Route::get('/{purchaseOrder}', [PurchaseOrderController::class, 'show']);
