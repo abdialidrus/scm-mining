@@ -17,8 +17,10 @@ class PurchaseRequestLine extends Model
         'item_id',
         'quantity',
         'uom_id',
-        'remarks',
+        'remark',
     ];
+
+    protected $appends = ['remarks'];
 
     protected function casts(): array
     {
@@ -26,6 +28,16 @@ class PurchaseRequestLine extends Model
             'quantity' => 'decimal:3',
             'line_no' => 'integer',
         ];
+    }
+
+    public function getRemarksAttribute(): ?string
+    {
+        return $this->attributes['remark'] ?? null;
+    }
+
+    public function setRemarksAttribute(?string $value): void
+    {
+        $this->attributes['remark'] = $value;
     }
 
     public function purchaseRequest()
