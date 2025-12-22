@@ -17,9 +17,11 @@ import {
     FileText,
     LayoutGrid,
     Package,
+    PackageCheck,
     Ruler,
     ShoppingCart,
     Users,
+    Warehouse,
 } from 'lucide-vue-next';
 import AppLogo from './AppLogo.vue';
 
@@ -42,6 +44,11 @@ const procurementNavItems: NavItem[] = [
         href: '/purchase-orders',
         icon: ShoppingCart,
     },
+    {
+        title: 'Goods Receipts',
+        href: '/goods-receipts',
+        icon: PackageCheck,
+    },
 ];
 
 const masterDataNavItems: NavItem[] = [
@@ -59,6 +66,11 @@ const masterDataNavItems: NavItem[] = [
         title: 'UOMs',
         href: '/master-data/uoms',
         icon: Ruler,
+    },
+    {
+        title: 'Warehouses',
+        href: '/master-data/warehouses',
+        icon: Warehouse,
     },
     {
         title: 'Suppliers',

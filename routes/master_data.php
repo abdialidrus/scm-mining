@@ -59,4 +59,26 @@ Route::middleware(['auth', 'verified'])->group(function () {
             'supplierId' => $supplierId,
         ]);
     })->name('master-data.suppliers.show');
+
+    Route::get('/master-data/warehouses', function () {
+        return Inertia::render('master-data/warehouses/Index');
+    })->name('master-data.warehouses.index');
+
+    Route::get('/master-data/warehouses/create', function () {
+        return Inertia::render('master-data/warehouses/Form', [
+            'warehouseId' => null,
+        ]);
+    })->name('master-data.warehouses.create');
+
+    Route::get('/master-data/warehouses/{warehouse}/edit', function (\App\Models\Warehouse $warehouse) {
+        return Inertia::render('master-data/warehouses/Form', [
+            'warehouseId' => $warehouse->id,
+        ]);
+    })->name('master-data.warehouses.edit');
+
+    Route::get('/master-data/warehouses/{warehouse}', function (\App\Models\Warehouse $warehouse) {
+        return Inertia::render('master-data/warehouses/Show', [
+            'warehouseId' => $warehouse->id,
+        ]);
+    })->name('master-data.warehouses.show');
 });

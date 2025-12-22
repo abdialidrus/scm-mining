@@ -21,6 +21,10 @@ class RolePermissionSeeder extends Seeder
             'receive goods',
             'put away',
             'pick items',
+            'manage warehouses',
+            'create gr',
+            'post gr',
+            'cancel gr',
         ];
 
         foreach ($permissions as $permission) {
@@ -47,7 +51,15 @@ class RolePermissionSeeder extends Seeder
         $director->givePermissionTo(['approve po']);
 
         $warehouse = Role::query()->firstOrCreate(['name' => 'warehouse', 'guard_name' => 'web']);
-        $warehouse->givePermissionTo(['receive goods', 'put away', 'pick items']);
+        $warehouse->givePermissionTo([
+            'receive goods',
+            'put away',
+            'pick items',
+            'manage warehouses',
+            'create gr',
+            'post gr',
+            'cancel gr',
+        ]);
 
         // Super admin has all permissions.
         $superAdmin = Role::query()->firstOrCreate(['name' => 'super_admin', 'guard_name' => 'web']);

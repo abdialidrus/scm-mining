@@ -24,6 +24,14 @@ export type DepartmentDto = {
     head?: { id: number; name: string; email: string } | null;
 };
 
+export type WarehouseDto = {
+    id: number;
+    code: string;
+    name: string;
+    address?: string | null;
+    is_active: boolean;
+};
+
 export async function fetchItems(params?: { search?: string; limit?: number }) {
     const qs = new URLSearchParams();
     if (params?.search) qs.set('search', params.search);
@@ -43,4 +51,12 @@ export async function fetchDepartments(params?: { search?: string }) {
     const suffix = qs.toString() ? `?${qs.toString()}` : '';
 
     return apiFetch<{ data: DepartmentDto[] }>(`/api/departments${suffix}`);
+}
+
+export async function fetchWarehouses(params?: { search?: string }) {
+    const qs = new URLSearchParams();
+    if (params?.search) qs.set('search', params.search);
+    const suffix = qs.toString() ? `?${qs.toString()}` : '';
+
+    return apiFetch<{ data: WarehouseDto[] }>(`/api/warehouses${suffix}`);
 }

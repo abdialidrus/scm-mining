@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\DepartmentController;
+use App\Http\Controllers\Api\GoodsReceiptController;
 use App\Http\Controllers\Api\ItemController;
 use App\Http\Controllers\Api\PurchaseOrderController;
 use App\Http\Controllers\Api\PurchaseRequestController;
@@ -8,6 +9,7 @@ use App\Http\Controllers\Api\RoleController;
 use App\Http\Controllers\Api\SupplierController;
 use App\Http\Controllers\Api\UomController;
 use App\Http\Controllers\Api\UserController;
+use App\Http\Controllers\Api\WarehouseController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -47,6 +49,15 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/{purchaseOrder}/cancel', [PurchaseOrderController::class, 'cancel']);
     });
 
+    Route::prefix('goods-receipts')->group(function () {
+        Route::get('/', [GoodsReceiptController::class, 'index']);
+        Route::post('/', [GoodsReceiptController::class, 'store']);
+        Route::get('/{goodsReceipt}', [GoodsReceiptController::class, 'show']);
+
+        Route::post('/{goodsReceipt}/post', [GoodsReceiptController::class, 'post']);
+        Route::post('/{goodsReceipt}/cancel', [GoodsReceiptController::class, 'cancel']);
+    });
+
     Route::get('/roles', [RoleController::class, 'index']);
 
     Route::get('/users', [UserController::class, 'index']);
@@ -60,4 +71,10 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/suppliers/{supplier}', [SupplierController::class, 'show']);
     Route::put('/suppliers/{supplier}', [SupplierController::class, 'update']);
     Route::delete('/suppliers/{supplier}', [SupplierController::class, 'destroy']);
+
+    Route::get('/warehouses', [WarehouseController::class, 'index']);
+    Route::post('/warehouses', [WarehouseController::class, 'store']);
+    Route::get('/warehouses/{warehouse}', [WarehouseController::class, 'show']);
+    Route::put('/warehouses/{warehouse}', [WarehouseController::class, 'update']);
+    Route::delete('/warehouses/{warehouse}', [WarehouseController::class, 'destroy']);
 });
