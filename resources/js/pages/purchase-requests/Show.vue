@@ -17,6 +17,7 @@ import {
     TableHeader,
     TableRow,
 } from '@/components/ui/table';
+import { useAbilities } from '@/composables/useAbilities';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { formatQty } from '@/lib/format';
 import {
@@ -41,6 +42,12 @@ const rejectOpen = ref(false);
 const rejectReason = ref('');
 const rejectSubmitting = ref(false);
 const fieldErrors = ref<Record<string, string[]>>({});
+
+const { can } = useAbilities();
+
+const canUpdate = computed(() => can('purchaseRequests.update'));
+const canSubmit = computed(() => can('purchaseRequests.submit'));
+const canApprove = computed(() => can('purchaseRequests.approve'));
 
 async function load() {
     loading.value = true;
@@ -183,7 +190,7 @@ onMounted(load);
                 </Button>
 
                 <Button
-                    v-if="pr && status === 'DRAFT'"
+                    v-if="pr && status === 'DRAFT' && canUpdate"
                     variant="outline"
                     as-child
                 >
@@ -359,14 +366,16 @@ onMounted(load);
             </div>
 
             <div class="no-print flex gap-2">
-                <Button v-if="status === 'DRAFT'" @click="submit"
+                <Button v-if="status === 'DRAFT' && canSubmit" @click="submit"
                     >Submit</Button
                 >
-                <Button v-if="status === 'SUBMITTED'" @click="approve"
+                <Button
+                    v-if="status === 'SUBMITTED' && canApprove"
+                    @click="approve"
                     >Approve</Button
                 >
                 <Button
-                    v-if="status === 'SUBMITTED'"
+                    v-if="status === 'SUBMITTED' && canApprove"
                     variant="destructive"
                     @click="openReject"
                 >

@@ -2,6 +2,8 @@
 
 namespace App\Http\Middleware;
 
+use App\Models\PurchaseRequest;
+use App\Models\User;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
@@ -44,8 +46,42 @@ class HandleInertiaRequests extends Middleware
             'quote' => ['message' => trim($message), 'author' => trim($author)],
             'auth' => [
                 'user' => $request->user(),
+                'abilities' => fn() => $this->buildAbilities($request),
             ],
             'sidebarOpen' => ! $request->hasCookie('sidebar_state') || $request->cookie('sidebar_state') === 'true',
         ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function buildAbilities(Request $request): array
+    {
+        $user = $request->user();
+        if (!$user) {
+            return [];
+        }
+
+        // General abilities (non model-specific)
+        $abilities = [
+            'users.viewAny' => $user->can('viewAny', User::class),
+            'users.create' => $user->can('create', User::class),
+        ];
+
+        // Purchase Request abilities (model-specific on the current page, if present)
+        // NOTE: The Inertia web route uses `{purchaseRequestId}` (int), while the API uses `{purchaseRequest}` (model binding).
+        $purchaseRequestId = $request->route('purchaseRequestId');
+        if ($purchaseRequestId) {
+            /** @var PurchaseRequest|null $pr */
+            $pr = PurchaseRequest::query()->find((int) $purchaseRequestId);
+            if ($pr) {
+                $abilities['purchaseRequests.view'] = $user->can('view', $pr);
+                $abilities['purchaseRequests.update'] = $user->can('update', $pr);
+                $abilities['purchaseRequests.submit'] = $user->can('submit', $pr);
+                $abilities['purchaseRequests.approve'] = $user->can('approve', $pr);
+            }
+        }
+
+        return $abilities;
     }
 }
