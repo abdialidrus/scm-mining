@@ -9,6 +9,7 @@ import {
     listPurchaseOrders,
     PurchaseOrderDto,
 } from '@/services/purchaseOrderApi';
+import { BreadcrumbItem } from '@/types';
 import { Head, Link, router } from '@inertiajs/vue3';
 import { computed, onMounted, reactive, ref } from 'vue';
 
@@ -149,49 +150,69 @@ async function save() {
     }
 }
 
+const breadcrumbs: BreadcrumbItem[] = [
+    {
+        title: 'Goods Receipts',
+        href: '/goods-receipts',
+    },
+    {
+        title: 'Create',
+        href: '#',
+    },
+];
+
 onMounted(load);
 </script>
 
 <template>
     <Head title="Create Goods Receipt" />
 
-    <AppLayout>
-        <div class="flex items-center justify-between">
-            <h1 class="text-xl font-semibold">Create Goods Receipt</h1>
-            <Button variant="outline" as-child>
-                <Link href="/goods-receipts">Back</Link>
-            </Button>
-        </div>
-
+    <AppLayout :breadcrumbs="breadcrumbs">
         <div
-            v-if="error"
-            class="mt-4 rounded-md border border-destructive/40 bg-destructive/10 p-3 text-sm"
+            class="flex h-full flex-1 flex-col gap-4 overflow-x-auto rounded-xl p-4"
         >
-            {{ error }}
-        </div>
+            <div class="flex items-center justify-between">
+                <h1 class="text-xl font-semibold">Create Goods Receipt</h1>
+                <Button variant="outline" as-child>
+                    <Link href="/goods-receipts">Back</Link>
+                </Button>
+            </div>
 
-        <div v-if="loading" class="mt-6 text-sm text-muted-foreground">
-            Loading...
-        </div>
+            <div
+                v-if="error"
+                class="mt-4 rounded-md border border-destructive/40 bg-destructive/10 p-3 text-sm"
+            >
+                {{ error }}
+            </div>
 
-        <div v-else class="mt-6 space-y-6">
-            <div class="grid gap-4 md:grid-cols-3">
-                <div>
-                    <label class="text-sm font-medium">Purchase Order ID</label>
-                    <select
-                        v-model.number="form.purchase_order_id"
-                        class="mt-1 w-full rounded-md border bg-background px-2 py-2"
-                        @change="
-                            form.purchase_order_id &&
-                            loadPo(form.purchase_order_id)
-                        "
-                    >
-                        <option :value="null">Select Purchase Order</option>
-                        <option v-for="po in pos" :key="po.id" :value="po.id">
-                            {{ po.po_number }}
-                        </option>
-                    </select>
-                    <!-- <Input
+            <div v-if="loading" class="mt-6 text-sm text-muted-foreground">
+                Loading...
+            </div>
+
+            <div v-else class="mt-6 space-y-6">
+                <div class="grid gap-4 md:grid-cols-3">
+                    <div>
+                        <label class="text-sm font-medium"
+                            >Purchase Order ID</label
+                        >
+                        <select
+                            v-model.number="form.purchase_order_id"
+                            class="mt-1 w-full rounded-md border bg-background px-2 py-2"
+                            @change="
+                                form.purchase_order_id &&
+                                loadPo(form.purchase_order_id)
+                            "
+                        >
+                            <option :value="null">Select Purchase Order</option>
+                            <option
+                                v-for="po in pos"
+                                :key="po.id"
+                                :value="po.id"
+                            >
+                                {{ po.po_number }}
+                            </option>
+                        </select>
+                        <!-- <Input
                         v-model.number="form.purchase_order_id"
                         placeholder="Enter PO id"
                         type="number"
@@ -203,117 +224,125 @@ onMounted(load);
                     <p class="mt-1 text-xs text-muted-foreground">
                         MVP: input PO ID manually.
                     </p> -->
-                </div>
+                    </div>
 
-                <div>
-                    <label class="text-sm font-medium">Warehouse</label>
-                    <select
-                        v-model.number="form.warehouse_id"
-                        class="mt-1 w-full rounded-md border bg-background px-2 py-2"
-                    >
-                        <option :value="null">Select warehouse</option>
-                        <option
-                            v-for="w in warehouses"
-                            :key="w.id"
-                            :value="w.id"
+                    <div>
+                        <label class="text-sm font-medium">Warehouse</label>
+                        <select
+                            v-model.number="form.warehouse_id"
+                            class="mt-1 w-full rounded-md border bg-background px-2 py-2"
                         >
-                            {{ w.code }} — {{ w.name }}
-                        </option>
-                    </select>
-                </div>
-
-                <div class="md:col-span-3">
-                    <label class="text-sm font-medium">Remarks</label>
-                    <textarea
-                        v-model="form.remarks"
-                        rows="2"
-                        class="mt-1 w-full rounded-md border bg-background px-3 py-2 text-sm"
-                    />
-                </div>
-            </div>
-
-            <div class="rounded-lg border p-4">
-                <h2 class="text-sm font-semibold">Lines</h2>
-
-                <div v-if="!po" class="mt-2 text-sm text-muted-foreground">
-                    Load a PO first.
-                </div>
-
-                <div v-else class="mt-2 space-y-4">
-                    <div class="text-sm text-muted-foreground">
-                        PO: {{ po.po_number }} ({{ po.status }})
+                            <option :value="null">Select warehouse</option>
+                            <option
+                                v-for="w in warehouses"
+                                :key="w.id"
+                                :value="w.id"
+                            >
+                                {{ w.code }} — {{ w.name }}
+                            </option>
+                        </select>
                     </div>
 
-                    <div
-                        v-for="(l, idx) in form.lines"
-                        :key="l.purchase_order_line_id"
-                        class="grid gap-2 rounded-md border p-3 md:grid-cols-12"
-                    >
-                        <div class="md:col-span-5">
-                            <div class="text-sm font-medium">
-                                {{
-                                    (po.lines ?? []).find(
-                                        (x) =>
-                                            x.id === l.purchase_order_line_id,
-                                    )?.item?.sku ?? 'Item'
-                                }}
-                                —
-                                {{
-                                    (po.lines ?? []).find(
-                                        (x) =>
-                                            x.id === l.purchase_order_line_id,
-                                    )?.item?.name ?? ''
-                                }}
-                            </div>
-                            <div class="text-xs text-muted-foreground">
-                                Ordered:
-                                {{
-                                    (po.lines ?? []).find(
-                                        (x) =>
-                                            x.id === l.purchase_order_line_id,
-                                    )?.quantity ?? 0
-                                }}
-                                {{
-                                    (po.lines ?? []).find(
-                                        (x) =>
-                                            x.id === l.purchase_order_line_id,
-                                    )?.uom?.code ?? ''
-                                }}
-                            </div>
+                    <div class="md:col-span-3">
+                        <label class="text-sm font-medium">Remarks</label>
+                        <textarea
+                            v-model="form.remarks"
+                            rows="2"
+                            class="mt-1 w-full rounded-md border bg-background px-3 py-2 text-sm"
+                        />
+                    </div>
+                </div>
+
+                <div class="rounded-lg border p-4">
+                    <h2 class="text-sm font-semibold">Lines</h2>
+
+                    <div v-if="!po" class="mt-2 text-sm text-muted-foreground">
+                        Load a PO first.
+                    </div>
+
+                    <div v-else class="mt-2 space-y-4">
+                        <div class="text-sm text-muted-foreground">
+                            PO: {{ po.po_number }} ({{ po.status }})
                         </div>
 
-                        <div class="md:col-span-3">
-                            <label class="text-xs font-medium"
-                                >Receive Qty</label
-                            >
-                            <Input
-                                v-model.number="l.received_quantity"
-                                type="number"
-                            />
-                            <div
-                                v-if="lineError(idx, 'received_quantity')"
-                                class="mt-1 text-xs text-destructive"
-                            >
-                                {{
-                                    lineError(idx, 'received_quantity')!.join(
-                                        ', ',
-                                    )
-                                }}
+                        <div
+                            v-for="(l, idx) in form.lines"
+                            :key="l.purchase_order_line_id"
+                            class="grid gap-2 rounded-md border p-3 md:grid-cols-12"
+                        >
+                            <div class="md:col-span-5">
+                                <div class="text-sm font-medium">
+                                    {{
+                                        (po.lines ?? []).find(
+                                            (x) =>
+                                                x.id ===
+                                                l.purchase_order_line_id,
+                                        )?.item?.sku ?? 'Item'
+                                    }}
+                                    —
+                                    {{
+                                        (po.lines ?? []).find(
+                                            (x) =>
+                                                x.id ===
+                                                l.purchase_order_line_id,
+                                        )?.item?.name ?? ''
+                                    }}
+                                </div>
+                                <div class="text-xs text-muted-foreground">
+                                    Ordered:
+                                    {{
+                                        (po.lines ?? []).find(
+                                            (x) =>
+                                                x.id ===
+                                                l.purchase_order_line_id,
+                                        )?.quantity ?? 0
+                                    }}
+                                    {{
+                                        (po.lines ?? []).find(
+                                            (x) =>
+                                                x.id ===
+                                                l.purchase_order_line_id,
+                                        )?.uom?.code ?? ''
+                                    }}
+                                </div>
                             </div>
-                        </div>
 
-                        <div class="md:col-span-4">
-                            <label class="text-xs font-medium">Remarks</label>
-                            <Input v-model="l.remarks" />
+                            <div class="md:col-span-3">
+                                <label class="text-xs font-medium"
+                                    >Receive Qty</label
+                                >
+                                <Input
+                                    v-model.number="l.received_quantity"
+                                    type="number"
+                                />
+                                <div
+                                    v-if="lineError(idx, 'received_quantity')"
+                                    class="mt-1 text-xs text-destructive"
+                                >
+                                    {{
+                                        lineError(
+                                            idx,
+                                            'received_quantity',
+                                        )!.join(', ')
+                                    }}
+                                </div>
+                            </div>
+
+                            <div class="md:col-span-4">
+                                <label class="text-xs font-medium"
+                                    >Remarks</label
+                                >
+                                <Input v-model="l.remarks" />
+                            </div>
                         </div>
                     </div>
                 </div>
-            </div>
 
-            <div class="flex gap-2">
-                <Button :disabled="saving" type="button" @click="save">
-                    {{ saving ? 'Saving...' : 'Create' }}
-                </Button>
+                <div class="flex gap-2">
+                    <Button :disabled="saving" type="button" @click="save">
+                        {{ saving ? 'Saving...' : 'Create' }}
+                    </Button>
+                </div>
             </div>
         </div>
     </AppLayout>

@@ -6,6 +6,7 @@ import {
     getSupplier,
     type SupplierDto,
 } from '@/services/supplierApi';
+import { BreadcrumbItem } from '@/types';
 import { Head, Link, router } from '@inertiajs/vue3';
 import { computed, onMounted, ref } from 'vue';
 
@@ -57,87 +58,111 @@ async function destroy() {
     }
 }
 
+const breadcrumbs: BreadcrumbItem[] = [
+    {
+        title: 'Suppliers',
+        href: '/master-data/suppliers',
+    },
+    {
+        title: 'Supplier Details',
+        href: '#',
+    },
+];
+
 onMounted(load);
 </script>
 
 <template>
     <Head :title="title" />
 
-    <AppLayout>
-        <div class="flex items-center justify-between">
-            <div>
-                <h1 class="text-xl font-semibold">
-                    {{ supplier?.name ?? 'Supplier' }}
-                </h1>
-                <p class="text-sm text-muted-foreground">
-                    {{ supplier?.code ?? '' }}
-                </p>
-            </div>
-
-            <div class="flex gap-2">
-                <Button variant="outline" as-child>
-                    <Link href="/master-data/suppliers">Back</Link>
-                </Button>
-
-                <Button v-if="supplier" variant="outline" as-child>
-                    <Link :href="`/master-data/suppliers/${supplier.id}/edit`"
-                        >Edit</Link
-                    >
-                </Button>
-
-                <Button
-                    v-if="supplier"
-                    variant="destructive"
-                    type="button"
-                    :disabled="deleting"
-                    @click="destroy"
-                >
-                    {{ deleting ? 'Deleting…' : 'Delete' }}
-                </Button>
-            </div>
-        </div>
-
+    <AppLayout :breadcrumbs="breadcrumbs">
         <div
-            v-if="error"
-            class="mt-4 rounded-md border border-destructive/40 bg-destructive/10 p-3 text-sm"
+            class="flex h-full flex-1 flex-col gap-4 overflow-x-auto rounded-xl p-4"
         >
-            {{ error }}
-        </div>
+            <div class="flex items-center justify-between">
+                <div>
+                    <h1 class="text-xl font-semibold">
+                        {{ supplier?.name ?? 'Supplier' }}
+                    </h1>
+                    <p class="text-sm text-muted-foreground">
+                        {{ supplier?.code ?? '' }}
+                    </p>
+                </div>
 
-        <div v-if="loading" class="mt-6 text-sm text-muted-foreground">
-            Loading…
-        </div>
+                <div class="flex gap-2">
+                    <Button variant="outline" as-child>
+                        <Link href="/master-data/suppliers">Back</Link>
+                    </Button>
 
-        <div v-else-if="supplier" class="mt-6 space-y-6">
-            <div class="rounded-lg border p-4">
-                <div class="grid gap-2 md:grid-cols-2">
-                    <div>
-                        <span class="text-xs text-muted-foreground">Code</span>
-                        — {{ supplier.code }}
-                    </div>
-                    <div>
-                        <span class="text-xs text-muted-foreground">Name</span>
-                        — {{ supplier.name }}
-                    </div>
-                    <div>
-                        <span class="text-xs text-muted-foreground"
-                            >Contact</span
+                    <Button v-if="supplier" variant="outline" as-child>
+                        <Link
+                            :href="`/master-data/suppliers/${supplier.id}/edit`"
+                            >Edit</Link
                         >
-                        — {{ supplier.contact_name ?? '-' }}
-                    </div>
-                    <div>
-                        <span class="text-xs text-muted-foreground">Phone</span>
-                        — {{ supplier.phone ?? '-' }}
-                    </div>
-                    <div>
-                        <span class="text-xs text-muted-foreground">Email</span>
-                        — {{ supplier.email ?? '-' }}
-                    </div>
-                    <div class="md:col-span-2">
-                        <span class="text-xs text-muted-foreground"
-                            >Address</span
-                        >
-                        — {{ supplier.address ?? '-' }}
+                    </Button>
+
+                    <Button
+                        v-if="supplier"
+                        variant="destructive"
+                        type="button"
+                        :disabled="deleting"
+                        @click="destroy"
+                    >
+                        {{ deleting ? 'Deleting…' : 'Delete' }}
+                    </Button>
+                </div>
+            </div>
+
+            <div
+                v-if="error"
+                class="mt-4 rounded-md border border-destructive/40 bg-destructive/10 p-3 text-sm"
+            >
+                {{ error }}
+            </div>
+
+            <div v-if="loading" class="mt-6 text-sm text-muted-foreground">
+                Loading…
+            </div>
+
+            <div v-else-if="supplier" class="mt-6 space-y-6">
+                <div class="rounded-lg border p-4">
+                    <div class="grid gap-2 md:grid-cols-2">
+                        <div>
+                            <span class="text-xs text-muted-foreground"
+                                >Code</span
+                            >
+                            — {{ supplier.code }}
+                        </div>
+                        <div>
+                            <span class="text-xs text-muted-foreground"
+                                >Name</span
+                            >
+                            — {{ supplier.name }}
+                        </div>
+                        <div>
+                            <span class="text-xs text-muted-foreground"
+                                >Contact</span
+                            >
+                            — {{ supplier.contact_name ?? '-' }}
+                        </div>
+                        <div>
+                            <span class="text-xs text-muted-foreground"
+                                >Phone</span
+                            >
+                            — {{ supplier.phone ?? '-' }}
+                        </div>
+                        <div>
+                            <span class="text-xs text-muted-foreground"
+                                >Email</span
+                            >
+                            — {{ supplier.email ?? '-' }}
+                        </div>
+                        <div class="md:col-span-2">
+                            <span class="text-xs text-muted-foreground"
+                                >Address</span
+                            >
+                            — {{ supplier.address ?? '-' }}
+                        </div>
                     </div>
                 </div>
             </div>

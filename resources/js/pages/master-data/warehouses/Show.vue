@@ -57,68 +57,75 @@ onMounted(load);
     <Head :title="title" />
 
     <AppLayout>
-        <div class="flex items-center justify-between">
-            <div>
-                <h1 class="text-xl font-semibold">
-                    {{ warehouse?.code ?? 'Warehouse' }}
-                </h1>
-                <p class="text-sm text-muted-foreground">
-                    {{ warehouse?.name ?? '' }}
-                </p>
-            </div>
-
-            <div class="flex gap-2">
-                <Button variant="outline" as-child>
-                    <Link href="/master-data/warehouses">Back</Link>
-                </Button>
-
-                <Button v-if="warehouse" variant="outline" as-child>
-                    <Link :href="`/master-data/warehouses/${warehouse.id}/edit`"
-                        >Edit</Link
-                    >
-                </Button>
-
-                <Button
-                    v-if="warehouse"
-                    variant="destructive"
-                    type="button"
-                    :disabled="deleting"
-                    @click="destroy"
-                >
-                    {{ deleting ? 'Deleting' : 'Delete' }}
-                </Button>
-            </div>
-        </div>
-
         <div
-            v-if="error"
-            class="mt-4 rounded-md border border-destructive/40 bg-destructive/10 p-3 text-sm"
+            class="flex h-full flex-1 flex-col gap-4 overflow-x-auto rounded-xl p-4"
         >
-            {{ error }}
-        </div>
+            <div class="flex items-center justify-between">
+                <div>
+                    <h1 class="text-xl font-semibold">
+                        {{ warehouse?.code ?? 'Warehouse' }}
+                    </h1>
+                    <p class="text-sm text-muted-foreground">
+                        {{ warehouse?.name ?? '' }}
+                    </p>
+                </div>
 
-        <div v-if="loading" class="mt-6 text-sm text-muted-foreground">
-            Loading...
-        </div>
+                <div class="flex gap-2">
+                    <Button variant="outline" as-child>
+                        <Link href="/master-data/warehouses">Back</Link>
+                    </Button>
 
-        <div v-else-if="warehouse" class="mt-6 space-y-6">
-            <div class="rounded-lg border p-4">
-                <div class="grid gap-2 md:grid-cols-2">
-                    <div>
-                        <span class="text-xs text-muted-foreground">ID</span>
-                        — {{ warehouse.id }}
-                    </div>
-                    <div>
-                        <span class="text-xs text-muted-foreground"
-                            >Active</span
+                    <Button v-if="warehouse" variant="outline" as-child>
+                        <Link
+                            :href="`/master-data/warehouses/${warehouse.id}/edit`"
+                            >Edit</Link
                         >
-                        — {{ warehouse.is_active ? 'Yes' : 'No' }}
-                    </div>
-                    <div class="md:col-span-2">
-                        <span class="text-xs text-muted-foreground"
-                            >Address</span
-                        >
-                        — {{ warehouse.address ?? '-' }}
+                    </Button>
+
+                    <Button
+                        v-if="warehouse"
+                        variant="destructive"
+                        type="button"
+                        :disabled="deleting"
+                        @click="destroy"
+                    >
+                        {{ deleting ? 'Deleting' : 'Delete' }}
+                    </Button>
+                </div>
+            </div>
+
+            <div
+                v-if="error"
+                class="mt-4 rounded-md border border-destructive/40 bg-destructive/10 p-3 text-sm"
+            >
+                {{ error }}
+            </div>
+
+            <div v-if="loading" class="mt-6 text-sm text-muted-foreground">
+                Loading...
+            </div>
+
+            <div v-else-if="warehouse" class="mt-6 space-y-6">
+                <div class="rounded-lg border p-4">
+                    <div class="grid gap-2 md:grid-cols-2">
+                        <div>
+                            <span class="text-xs text-muted-foreground"
+                                >ID</span
+                            >
+                            — {{ warehouse.id }}
+                        </div>
+                        <div>
+                            <span class="text-xs text-muted-foreground"
+                                >Active</span
+                            >
+                            — {{ warehouse.is_active ? 'Yes' : 'No' }}
+                        </div>
+                        <div class="md:col-span-2">
+                            <span class="text-xs text-muted-foreground"
+                                >Address</span
+                            >
+                            — {{ warehouse.address ?? '-' }}
+                        </div>
                     </div>
                 </div>
             </div>

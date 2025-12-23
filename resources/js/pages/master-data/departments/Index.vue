@@ -11,6 +11,7 @@ import {
 } from '@/components/ui/table';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { fetchDepartments, type DepartmentDto } from '@/services/masterDataApi';
+import { BreadcrumbItem } from '@/types';
 import { Head } from '@inertiajs/vue3';
 import { onMounted, ref } from 'vue';
 
@@ -34,75 +35,106 @@ async function load() {
     }
 }
 
+const breadcrumbs: BreadcrumbItem[] = [
+    {
+        title: 'Departments',
+        href: '#',
+    },
+];
+
 onMounted(load);
 </script>
 
 <template>
     <Head title="Master Data - Departments" />
 
-    <AppLayout>
-        <div>
-            <h1 class="text-xl font-semibold">Departments</h1>
-            <p class="text-sm text-muted-foreground">Read-only.</p>
-        </div>
-
-        <div class="mt-6 flex items-end gap-2">
-            <div class="flex-1">
-                <label class="text-sm font-medium">Search</label>
-                <Input v-model="search" placeholder="code or name" />
-            </div>
-            <Button variant="outline" type="button" @click="load"
-                >Search</Button
-            >
-        </div>
-
+    <AppLayout :breadcrumbs="breadcrumbs">
         <div
-            v-if="error"
-            class="mt-4 rounded-md border border-destructive/40 bg-destructive/10 p-3 text-sm"
+            class="flex h-full flex-1 flex-col gap-4 overflow-x-auto rounded-xl p-4"
         >
-            {{ error }}
-        </div>
+            <div>
+                <h1 class="text-xl font-semibold">Departments</h1>
+                <p class="text-sm text-muted-foreground">
+                    Management departments
+                </p>
+            </div>
 
-        <div v-if="loading" class="mt-6 text-sm text-muted-foreground">
-            Loading…
-        </div>
-
-        <div v-else class="mt-6 overflow-hidden rounded-lg border">
-            <Table>
-                <TableHeader class="bg-muted/40">
-                    <TableRow>
-                        <TableHead>Code</TableHead>
-                        <TableHead>Name</TableHead>
-                        <TableHead>Head</TableHead>
-                        <TableHead class="text-right">ID</TableHead>
-                    </TableRow>
-                </TableHeader>
-                <TableBody>
-                    <TableRow
-                        v-for="d in departments"
-                        :key="d.id"
-                        class="cursor-pointer hover:bg-muted/30"
-                        title="Read-only"
-                    >
-                        <TableCell class="font-medium">{{ d.code }}</TableCell>
-                        <TableCell>{{ d.name }}</TableCell>
-                        <TableCell>
-                            <span v-if="d.head">{{ d.head.name }}</span>
-                            <span v-else class="text-muted-foreground">-</span>
-                        </TableCell>
-                        <TableCell class="text-right">{{ d.id }}</TableCell>
-                    </TableRow>
-
-                    <TableRow v-if="departments.length === 0">
-                        <TableCell
-                            colspan="4"
-                            class="py-6 text-center text-muted-foreground"
+            <div class="mt-6 grid items-end gap-3 md:grid-cols-12">
+                <div class="md:col-span-10">
+                    <label class="text-sm font-medium">Search</label>
+                    <div class="mt-1 flex h-10 items-center">
+                        <Input
+                            v-model="search"
+                            class="h-10"
+                            placeholder="Enter department code or name"
+                        />
+                    </div>
+                </div>
+                <div class="md:col-span-2">
+                    <div class="mt-1 flex h-10 items-center">
+                        <Button
+                            variant="outline"
+                            type="button"
+                            class="h-10 w-full"
+                            @click="load"
+                            >Search</Button
                         >
-                            No departments.
-                        </TableCell>
-                    </TableRow>
-                </TableBody>
-            </Table>
+                    </div>
+                </div>
+            </div>
+
+            <div
+                v-if="error"
+                class="mt-4 rounded-md border border-destructive/40 bg-destructive/10 p-3 text-sm"
+            >
+                {{ error }}
+            </div>
+
+            <div v-if="loading" class="mt-6 text-sm text-muted-foreground">
+                Loading…
+            </div>
+
+            <div v-else class="mt-6 overflow-hidden rounded-lg border">
+                <Table>
+                    <TableHeader class="bg-muted/40">
+                        <TableRow>
+                            <TableHead>Code</TableHead>
+                            <TableHead>Name</TableHead>
+                            <TableHead>Head</TableHead>
+                            <TableHead class="text-right">ID</TableHead>
+                        </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                        <TableRow
+                            v-for="d in departments"
+                            :key="d.id"
+                            class="cursor-pointer hover:bg-muted/30"
+                            title="Read-only"
+                        >
+                            <TableCell class="font-medium">{{
+                                d.code
+                            }}</TableCell>
+                            <TableCell>{{ d.name }}</TableCell>
+                            <TableCell>
+                                <span v-if="d.head">{{ d.head.name }}</span>
+                                <span v-else class="text-muted-foreground"
+                                    >-</span
+                                >
+                            </TableCell>
+                            <TableCell class="text-right">{{ d.id }}</TableCell>
+                        </TableRow>
+
+                        <TableRow v-if="departments.length === 0">
+                            <TableCell
+                                colspan="4"
+                                class="py-6 text-center text-muted-foreground"
+                            >
+                                No departments.
+                            </TableCell>
+                        </TableRow>
+                    </TableBody>
+                </Table>
+            </div>
         </div>
     </AppLayout>
 </template>

@@ -13,6 +13,7 @@ import {
 import { listUsers, type UserListItemDto } from '@/services/userAdminApi';
 import { Head, Link, router } from '@inertiajs/vue3';
 import { onMounted, ref } from 'vue';
+import { BreadcrumbItem } from '@/types';
 
 const loading = ref(true);
 const error = ref<string | null>(null);
@@ -34,87 +35,118 @@ async function load() {
     }
 }
 
+const breadcrumbs: BreadcrumbItem[] = [
+    {
+        title: 'Users',
+        href: '/master-data/users',
+    },
+];
+
 onMounted(load);
 </script>
 
 <template>
     <Head title="Master Data - Users" />
 
-    <AppLayout>
-        <div class="flex items-center justify-between">
-            <div>
-                <h1 class="text-xl font-semibold">Users</h1>
-                <p class="text-sm text-muted-foreground">
-                    Admin CRUD (super_admin only).
-                </p>
-            </div>
-
-            <Button as-child>
-                <Link href="/master-data/users/create">Create</Link>
-            </Button>
-        </div>
-
-        <div class="mt-6 flex items-end gap-2">
-            <div class="flex-1">
-                <label class="text-sm font-medium">Search</label>
-                <Input v-model="search" placeholder="name or email" />
-            </div>
-            <Button variant="outline" type="button" @click="load"
-                >Search</Button
-            >
-        </div>
-
+    <AppLayout :breadcrumbs="breadcrumbs">
         <div
-            v-if="error"
-            class="mt-4 rounded-md border border-destructive/40 bg-destructive/10 p-3 text-sm"
+            class="flex h-full flex-1 flex-col gap-4 overflow-x-auto rounded-xl p-4"
         >
-            {{ error }}
-        </div>
+            <div class="flex items-center justify-between">
+                <div>
+                    <h1 class="text-xl font-semibold">Users</h1>
+                    <p class="text-sm text-muted-foreground">
+                        Admin CRUD (super_admin only).
+                    </p>
+                </div>
 
-        <div v-if="loading" class="mt-6 text-sm text-muted-foreground">
-            Loading…
-        </div>
+                <Button as-child>
+                    <Link href="/master-data/users/create">Create</Link>
+                </Button>
+            </div>
 
-        <div v-else class="mt-6 overflow-hidden rounded-lg border">
-            <Table>
-                <TableHeader class="bg-muted/40">
-                    <TableRow>
-                        <TableHead>Name</TableHead>
-                        <TableHead>Email</TableHead>
-                        <TableHead>Department</TableHead>
-                        <TableHead>Roles</TableHead>
-                    </TableRow>
-                </TableHeader>
-                <TableBody>
-                    <TableRow
-                        v-for="u in users"
-                        :key="u.id"
-                        class="cursor-pointer hover:bg-muted/30"
-                        @click="router.visit(`/master-data/users/${u.id}`)"
-                    >
-                        <TableCell class="font-medium">{{ u.name }}</TableCell>
-                        <TableCell>{{ u.email }}</TableCell>
-                        <TableCell>{{ u.department?.code ?? '-' }}</TableCell>
-                        <TableCell>
-                            <span v-if="u.roles?.length">{{
-                                u.roles
-                                    .map((r: { name: string }) => r.name)
-                                    .join(', ')
-                            }}</span>
-                            <span v-else class="text-muted-foreground">-</span>
-                        </TableCell>
-                    </TableRow>
-
-                    <TableRow v-if="users.length === 0">
-                        <TableCell
-                            colspan="4"
-                            class="py-6 text-center text-muted-foreground"
+            <div class="mt-6 grid items-end gap-3 md:grid-cols-12">
+                <div class="md:col-span-10">
+                    <label class="text-sm font-medium">Search</label>
+                    <div class="mt-1 flex h-10 items-center">
+                        <Input
+                            v-model="search"
+                            class="h-10"
+                            placeholder="Enter user name or email"
+                        />
+                    </div>
+                </div>
+                <div class="md:col-span-2">
+                    <div class="mt-1 flex h-10 items-center">
+                        <Button
+                            variant="outline"
+                            type="button"
+                            class="h-10 w-full"
+                            @click="load"
+                            >Search</Button
                         >
-                            No users.
-                        </TableCell>
-                    </TableRow>
-                </TableBody>
-            </Table>
+                    </div>
+                </div>
+            </div>
+
+            <div
+                v-if="error"
+                class="mt-4 rounded-md border border-destructive/40 bg-destructive/10 p-3 text-sm"
+            >
+                {{ error }}
+            </div>
+
+            <div v-if="loading" class="mt-6 text-sm text-muted-foreground">
+                Loading…
+            </div>
+
+            <div v-else class="mt-6 overflow-hidden rounded-lg border">
+                <Table>
+                    <TableHeader class="bg-muted/40">
+                        <TableRow>
+                            <TableHead>Name</TableHead>
+                            <TableHead>Email</TableHead>
+                            <TableHead>Department</TableHead>
+                            <TableHead>Roles</TableHead>
+                        </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                        <TableRow
+                            v-for="u in users"
+                            :key="u.id"
+                            class="cursor-pointer hover:bg-muted/30"
+                            @click="router.visit(`/master-data/users/${u.id}`)"
+                        >
+                            <TableCell class="font-medium">{{
+                                u.name
+                            }}</TableCell>
+                            <TableCell>{{ u.email }}</TableCell>
+                            <TableCell>{{
+                                u.department?.code ?? '-'
+                            }}</TableCell>
+                            <TableCell>
+                                <span v-if="u.roles?.length">{{
+                                    u.roles
+                                        .map((r: { name: string }) => r.name)
+                                        .join(', ')
+                                }}</span>
+                                <span v-else class="text-muted-foreground"
+                                    >-</span
+                                >
+                            </TableCell>
+                        </TableRow>
+
+                        <TableRow v-if="users.length === 0">
+                            <TableCell
+                                colspan="4"
+                                class="py-6 text-center text-muted-foreground"
+                            >
+                                No users.
+                            </TableCell>
+                        </TableRow>
+                    </TableBody>
+                </Table>
+            </div>
         </div>
     </AppLayout>
 </template>

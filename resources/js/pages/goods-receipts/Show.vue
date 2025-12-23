@@ -7,6 +7,7 @@ import {
     postGoodsReceipt,
     type GoodsReceiptDto,
 } from '@/services/goodsReceiptApi';
+import { BreadcrumbItem } from '@/types';
 import { Head, Link } from '@inertiajs/vue3';
 import { computed, onMounted, ref } from 'vue';
 
@@ -68,135 +69,154 @@ async function cancel() {
     }
 }
 
+const breadcrumbs: BreadcrumbItem[] = [
+    {
+        title: 'Goods Receipts',
+        href: '/goods-receipts',
+    },
+    {
+        title: 'Goods Receipt Details',
+        href: '#',
+    },
+];
+
 onMounted(load);
 </script>
 
 <template>
     <Head :title="title" />
 
-    <AppLayout>
-        <div class="flex items-center justify-between">
-            <div>
-                <h1 class="text-xl font-semibold">
-                    {{ gr?.gr_number ?? 'Goods Receipt' }}
-                </h1>
-                <p class="text-sm text-muted-foreground">
-                    Status: {{ gr?.status ?? '-' }}
-                </p>
-            </div>
-
-            <div class="flex gap-2">
-                <Button variant="outline" as-child>
-                    <Link href="/goods-receipts">Back</Link>
-                </Button>
-
-                <Button
-                    v-if="gr?.status === 'DRAFT'"
-                    :disabled="acting"
-                    type="button"
-                    @click="post"
-                >
-                    {{ acting ? 'Working' : 'Post' }}
-                </Button>
-
-                <Button
-                    v-if="gr?.status === 'DRAFT'"
-                    variant="destructive"
-                    :disabled="acting"
-                    type="button"
-                    @click="cancel"
-                >
-                    {{ acting ? 'Working' : 'Cancel' }}
-                </Button>
-            </div>
-        </div>
-
+    <AppLayout :breadcrumbs="breadcrumbs">
         <div
-            v-if="error"
-            class="mt-4 rounded-md border border-destructive/40 bg-destructive/10 p-3 text-sm"
+            class="flex h-full flex-1 flex-col gap-4 overflow-x-auto rounded-xl p-4"
         >
-            {{ error }}
-        </div>
+            <div class="flex items-center justify-between">
+                <div>
+                    <h1 class="text-xl font-semibold">
+                        {{ gr?.gr_number ?? 'Goods Receipt' }}
+                    </h1>
+                    <p class="text-sm text-muted-foreground">
+                        Status: {{ gr?.status ?? '-' }}
+                    </p>
+                </div>
 
-        <div v-if="loading" class="mt-6 text-sm text-muted-foreground">
-            Loading...
-        </div>
+                <div class="flex gap-2">
+                    <Button variant="outline" as-child>
+                        <Link href="/goods-receipts">Back</Link>
+                    </Button>
 
-        <div v-else-if="gr" class="mt-6 space-y-6">
-            <div class="rounded-lg border p-4">
-                <div class="grid gap-2 md:grid-cols-2">
-                    <div>
-                        <span class="text-xs text-muted-foreground">PO</span>
-                        —
-                        {{
-                            gr.purchaseOrder?.po_number ?? gr.purchase_order_id
-                        }}
-                    </div>
-                    <div>
-                        <span class="text-xs text-muted-foreground"
-                            >Warehouse</span
-                        >
-                        —
-                        {{
-                            gr.warehouse
-                                ? `${gr.warehouse.code} — ${gr.warehouse.name}`
-                                : gr.warehouse_id
-                        }}
-                    </div>
+                    <Button
+                        v-if="gr?.status === 'DRAFT'"
+                        :disabled="acting"
+                        type="button"
+                        @click="post"
+                    >
+                        {{ acting ? 'Working' : 'Post' }}
+                    </Button>
+
+                    <Button
+                        v-if="gr?.status === 'DRAFT'"
+                        variant="destructive"
+                        :disabled="acting"
+                        type="button"
+                        @click="cancel"
+                    >
+                        {{ acting ? 'Working' : 'Cancel' }}
+                    </Button>
                 </div>
             </div>
 
-            <div class="rounded-lg border p-4">
-                <h2 class="text-sm font-semibold">Lines</h2>
-                <div class="mt-3 space-y-2">
-                    <div
-                        v-for="l in gr.lines ?? []"
-                        :key="l.id"
-                        class="flex items-start justify-between gap-4 rounded-md border px-3 py-2"
-                    >
+            <div
+                v-if="error"
+                class="mt-4 rounded-md border border-destructive/40 bg-destructive/10 p-3 text-sm"
+            >
+                {{ error }}
+            </div>
+
+            <div v-if="loading" class="mt-6 text-sm text-muted-foreground">
+                Loading...
+            </div>
+
+            <div v-else-if="gr" class="mt-6 space-y-6">
+                <div class="rounded-lg border p-4">
+                    <div class="grid gap-2 md:grid-cols-2">
                         <div>
-                            <div class="text-sm font-medium">
-                                {{ l.item?.sku ?? l.item_id }} —
-                                {{ l.item?.name ?? '' }}
+                            <span class="text-xs text-muted-foreground"
+                                >PO</span
+                            >
+                            —
+                            {{
+                                gr.purchaseOrder?.po_number ??
+                                gr.purchase_order_id
+                            }}
+                        </div>
+                        <div>
+                            <span class="text-xs text-muted-foreground"
+                                >Warehouse</span
+                            >
+                            —
+                            {{
+                                gr.warehouse
+                                    ? `${gr.warehouse.code} — ${gr.warehouse.name}`
+                                    : gr.warehouse_id
+                            }}
+                        </div>
+                    </div>
+                </div>
+
+                <div class="rounded-lg border p-4">
+                    <h2 class="text-sm font-semibold">Lines</h2>
+                    <div class="mt-3 space-y-2">
+                        <div
+                            v-for="l in gr.lines ?? []"
+                            :key="l.id"
+                            class="flex items-start justify-between gap-4 rounded-md border px-3 py-2"
+                        >
+                            <div>
+                                <div class="text-sm font-medium">
+                                    {{ l.item?.sku ?? l.item_id }} —
+                                    {{ l.item?.name ?? '' }}
+                                </div>
+                                <div class="text-xs text-muted-foreground">
+                                    Ordered: {{ l.ordered_quantity }} —
+                                    Received:
+                                    {{ l.received_quantity }}
+                                    {{ l.uom?.code ?? '' }}
+                                </div>
+                                <div
+                                    v-if="l.remarks"
+                                    class="text-xs text-muted-foreground"
+                                >
+                                    Notes: {{ l.remarks }}
+                                </div>
+                            </div>
+                        </div>
+
+                        <div
+                            v-if="(gr.lines ?? []).length === 0"
+                            class="text-sm text-muted-foreground"
+                        >
+                            No lines.
+                        </div>
+                    </div>
+                </div>
+
+                <div class="rounded-lg border p-4">
+                    <h2 class="text-sm font-semibold">History</h2>
+                    <div class="mt-3 space-y-2 text-sm">
+                        <div
+                            v-for="h in gr.status_histories ?? []"
+                            :key="h.id"
+                            class="flex justify-between"
+                        >
+                            <div>
+                                {{ h.action }}: {{ h.from_status ?? '-' }} →
+                                {{ h.to_status }}
+                                <span v-if="h.actor">({{ h.actor.name }})</span>
                             </div>
                             <div class="text-xs text-muted-foreground">
-                                Ordered: {{ l.ordered_quantity }} — Received:
-                                {{ l.received_quantity }}
-                                {{ l.uom?.code ?? '' }}
+                                {{ h.created_at }}
                             </div>
-                            <div
-                                v-if="l.remarks"
-                                class="text-xs text-muted-foreground"
-                            >
-                                Notes: {{ l.remarks }}
-                            </div>
-                        </div>
-                    </div>
-
-                    <div
-                        v-if="(gr.lines ?? []).length === 0"
-                        class="text-sm text-muted-foreground"
-                    >
-                        No lines.
-                    </div>
-                </div>
-            </div>
-
-            <div class="rounded-lg border p-4">
-                <h2 class="text-sm font-semibold">History</h2>
-                <div class="mt-3 space-y-2 text-sm">
-                    <div
-                        v-for="h in gr.status_histories ?? []"
-                        :key="h.id"
-                        class="flex justify-between"
-                    >
-                        <div>
-                            {{ h.action }}: {{ h.from_status ?? '-' }} →
-                            {{ h.to_status }}
-                            <span v-if="h.actor">({{ h.actor.name }})</span>
-                        </div>
-                        <div class="text-xs text-muted-foreground">
-                            {{ h.created_at }}
                         </div>
                     </div>
                 </div>
