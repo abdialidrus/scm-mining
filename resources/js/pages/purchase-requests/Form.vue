@@ -65,7 +65,7 @@ function setLineSelectedItem(
     lineItemSearch.value[idx] = '';
 
     // auto-fill UOM if empty
-    if (it && !line.uom_id && it.base_uom_id) {
+    if (it) {
         line.uom_id = it.base_uom_id;
     }
 }
@@ -115,10 +115,6 @@ const form = reactive({
 });
 
 const isEdit = computed(() => props.purchaseRequestId !== null);
-
-function getItemById(id: number | null): ItemDto | null {
-    return items.value.find((i) => i.id === id) || null;
-}
 
 function setFromDto(dto: PurchaseRequestDto) {
     form.department_id = dto.department_id;
@@ -185,31 +181,6 @@ function addLine() {
 function removeLine(idx: number) {
     if (form.lines.length <= 1) return;
     form.lines.splice(idx, 1);
-}
-
-async function doSearchItems() {
-    try {
-        const res = await fetchItems({ search: itemSearch.value, limit: 50 });
-        items.value = res.data;
-    } catch {
-        // ignore
-    }
-}
-
-function onSelectItem(line: {
-    item_id: number | null;
-    quantity: number;
-    uom_id: number | null;
-    remarks: string;
-}) {
-    if (line.item_id && line.uom_id) return;
-
-    const it = items.value.find((x) => x.id === line.item_id);
-    if (!it) return;
-
-    if (it.base_uom_id) {
-        line.uom_id = it.base_uom_id;
-    }
 }
 
 const fieldErrors = ref<Record<string, string[]>>({});
@@ -357,27 +328,9 @@ onMounted(load);
 
                 <div class="rounded-lg border p-4">
                     <div class="mb-3 flex items-center justify-between">
-                        <h2 class="text-sm font-semibold">Lines</h2>
+                        <h2 class="text-sm font-semibold">Items</h2>
                         <Button type="button" variant="outline" @click="addLine"
-                            >Add line</Button
-                        >
-                    </div>
-
-                    <div class="mb-4 flex items-end gap-2">
-                        <div class="flex-1">
-                            <label class="text-sm font-medium"
-                                >Search Items</label
-                            >
-                            <Input
-                                v-model="itemSearch"
-                                placeholder="Search by SKU/name"
-                            />
-                        </div>
-                        <Button
-                            type="button"
-                            variant="outline"
-                            @click="doSearchItems"
-                            >Search</Button
+                            >Add Item</Button
                         >
                     </div>
 
@@ -385,125 +338,137 @@ onMounted(load);
                         <div
                             v-for="(line, idx) in form.lines"
                             :key="idx"
-                            class="grid gap-3 rounded-md border p-3 md:grid-cols-12"
+                            class="flex flex-col gap-3 rounded-md border p-3"
                         >
-                            <div class="md:col-span-5">
-                                <label class="text-xs font-medium">Item</label>
-                                <Multiselect
-                                    class="mt-1"
-                                    :model-value="getLineSelectedItem(line)"
-                                    :options="items"
-                                    :searchable="true"
-                                    :internal-search="false"
-                                    :clear-on-select="true"
-                                    :close-on-select="true"
-                                    :preserve-search="true"
-                                    :loading="!!lineItemLoading[idx]"
-                                    :placeholder="'Search by SKU/name…'"
-                                    track-by="id"
-                                    label="name"
-                                    @search-change="
-                                        (q: string) =>
-                                            debounceSearchItemsRemote(idx, q)
-                                    "
-                                    @update:model-value="
-                                        (it: ItemDto | null) =>
-                                            setLineSelectedItem(idx, line, it)
-                                    "
-                                >
-                                    <template #singleLabel="{ option }">
-                                        {{ formatItemLabel(option) }}
-                                    </template>
-                                    <template #option="{ option }">
-                                        {{ formatItemLabel(option) }}
-                                    </template>
-                                    <template #noResult>
-                                        <div
-                                            class="px-2 py-1 text-sm text-muted-foreground"
-                                        >
-                                            No item found
-                                        </div>
-                                    </template>
-                                    <template #noOptions>
-                                        <div
-                                            class="px-2 py-1 text-sm text-muted-foreground"
-                                        >
-                                            Type at least 2 characters…
-                                        </div>
-                                    </template>
-                                </Multiselect>
-
-                                <div
-                                    v-if="lineError(idx, 'item_id')"
-                                    class="mt-1 text-xs text-destructive"
-                                >
-                                    {{ lineError(idx, 'item_id')!.join(', ') }}
-                                </div>
-                            </div>
-
-                            <div class="md:col-span-2">
-                                <label class="text-xs font-medium">Qty</label>
-                                <Input
-                                    v-model.number="line.quantity"
-                                    type="number"
-                                    step="0.01"
-                                    min="0"
-                                />
-                                <div
-                                    v-if="lineError(idx, 'quantity')"
-                                    class="mt-1 text-xs text-destructive"
-                                >
-                                    {{ lineError(idx, 'quantity')!.join(', ') }}
-                                </div>
-                            </div>
-
-                            <div class="md:col-span-3">
-                                <label class="text-xs font-medium">UOM</label>
-                                <select
-                                    v-model.number="line.uom_id"
-                                    class="mt-1 w-full rounded-md border bg-background px-2 py-2"
-                                >
-                                    <option :value="null">(auto/none)</option>
-                                    <option
-                                        v-for="u in uoms"
-                                        :key="u.id"
-                                        :value="u.id"
+                            <div class="grid items-end gap-3 md:grid-cols-12">
+                                <div class="md:col-span-8">
+                                    <label class="text-xs font-medium"
+                                        >Item</label
                                     >
-                                        {{ u.code }} — {{ u.name }}
-                                    </option>
-                                </select>
-                                <div
-                                    v-if="lineError(idx, 'uom_id')"
-                                    class="mt-1 text-xs text-destructive"
-                                >
-                                    {{ lineError(idx, 'uom_id')!.join(', ') }}
+                                    <div class="mt-1 flex h-10 items-center">
+                                        <Multiselect
+                                            class="h-10 w-full"
+                                            :model-value="
+                                                getLineSelectedItem(line)
+                                            "
+                                            :options="items"
+                                            :searchable="true"
+                                            :internal-search="false"
+                                            :clear-on-select="true"
+                                            :close-on-select="true"
+                                            :preserve-search="true"
+                                            :loading="!!lineItemLoading[idx]"
+                                            :placeholder="'Search by SKU/name…'"
+                                            track-by="id"
+                                            label="name"
+                                            @search-change="
+                                                (q: string) =>
+                                                    debounceSearchItemsRemote(
+                                                        idx,
+                                                        q,
+                                                    )
+                                            "
+                                            @update:model-value="
+                                                (it: ItemDto | null) =>
+                                                    setLineSelectedItem(
+                                                        idx,
+                                                        line,
+                                                        it,
+                                                    )
+                                            "
+                                        >
+                                            <template #singleLabel="{ option }">
+                                                {{ formatItemLabel(option) }}
+                                            </template>
+                                            <template #option="{ option }">
+                                                {{ formatItemLabel(option) }}
+                                            </template>
+                                            <template #noResult>
+                                                <div
+                                                    class="px-2 py-1 text-sm text-muted-foreground"
+                                                >
+                                                    No item found
+                                                </div>
+                                            </template>
+                                            <template #noOptions>
+                                                <div
+                                                    class="px-2 py-1 text-sm text-muted-foreground"
+                                                >
+                                                    Type at least 2 characters…
+                                                </div>
+                                            </template>
+                                        </Multiselect>
+
+                                        <div
+                                            v-if="lineError(idx, 'item_id')"
+                                            class="mt-1 text-xs text-destructive"
+                                        >
+                                            {{
+                                                lineError(idx, 'item_id')!.join(
+                                                    ', ',
+                                                )
+                                            }}
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="md:col-span-3">
+                                    <label class="text-xs font-medium"
+                                        >Qty</label
+                                    >
+                                    <div class="mt-1 flex h-10 items-center">
+                                        <Input
+                                            v-model.number="line.quantity"
+                                            type="number"
+                                            step="0.01"
+                                            min="0"
+                                            class="h-10 w-full"
+                                        />
+                                        <div
+                                            v-if="lineError(idx, 'quantity')"
+                                            class="mt-1 text-xs text-destructive"
+                                        >
+                                            {{
+                                                lineError(
+                                                    idx,
+                                                    'quantity',
+                                                )!.join(', ')
+                                            }}
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="md:col-span-1">
+                                    <Button
+                                        type="button"
+                                        variant="destructive"
+                                        @click="removeLine(idx)"
+                                        class="h-10 w-full"
+                                        >Remove</Button
+                                    >
                                 </div>
                             </div>
 
-                            <div
-                                class="flex items-end justify-end md:col-span-2"
-                            >
-                                <Button
-                                    type="button"
-                                    variant="destructive"
-                                    @click="removeLine(idx)"
-                                    >Remove</Button
-                                >
-                            </div>
-
-                            <div class="md:col-span-12">
+                            <div>
                                 <label class="text-xs font-medium"
-                                    >Line remarks</label
+                                    >Item remarks (optional)</label
                                 >
-                                <Input
-                                    v-model="line.remarks"
-                                    placeholder="Optional"
-                                />
-                                <div
-                                    v-if="lineError(idx, 'remarks')"
-                                    class="mt-1 text-xs text-destructive"
-                                >
-                                    {{ lineError(idx, 'remarks')!.join(', ') }}
+                                <div class="mt-1 flex h-10 items-center">
+                                    <Input
+                                        v-model="line.remarks"
+                                        placeholder="Enter item remarks"
+                                        class="h-10 w-full"
+                                    />
+                                    <div
+                                        v-if="lineError(idx, 'remarks')"
+                                        class="mt-1 text-xs text-destructive"
+                                    >
+                                        {{
+                                            lineError(idx, 'remarks')!.join(
+                                                ', ',
+                                            )
+                                        }}
+                                    </div>
                                 </div>
                             </div>
                         </div>
