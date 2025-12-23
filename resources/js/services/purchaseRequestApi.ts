@@ -105,7 +105,7 @@ export async function createPurchaseRequest(payload: {
     department_id: number;
     remarks?: string | null;
     lines: Array<{
-        item_id: number;
+        item_id: number | null;
         quantity: number;
         uom_id?: number | null;
         remarks?: string | null;
@@ -122,7 +122,7 @@ export async function updatePurchaseRequest(
     payload: {
         remarks?: string | null;
         lines: Array<{
-            item_id: number;
+            item_id: number | null;
             quantity: number;
             uom_id?: number | null;
             remarks?: string | null;

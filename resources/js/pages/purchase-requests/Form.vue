@@ -15,6 +15,8 @@ import {
 } from '@/services/purchaseRequestApi';
 import { Head, Link, router, usePage } from '@inertiajs/vue3';
 import { computed, onMounted, reactive, ref } from 'vue';
+import Multiselect from 'vue-multiselect';
+import 'vue-multiselect/dist/vue-multiselect.css';
 
 const props = defineProps<{ purchaseRequestId: number | null }>();
 
@@ -25,6 +27,61 @@ const error = ref<string | null>(null);
 const uoms = ref<UomDto[]>([]);
 const items = ref<ItemDto[]>([]);
 const itemSearch = ref('');
+
+// Remote-per-line search state (for multiselect)
+const lineItemSearch = ref<Record<number, string>>({});
+const lineItemLoading = ref<Record<number, boolean>>({});
+const lineSearchTimers = new Map<number, number>();
+
+function formatItemLabel(it: ItemDto) {
+    return `${it.sku} — ${it.name}`;
+}
+
+function getLineSelectedItem(line: { item_id: number | null }) {
+    if (!line.item_id) return null;
+    return items.value.find((i) => i.id === line.item_id) || null;
+}
+
+function setLineSelectedItem(
+    idx: number,
+    line: { item_id: number | null; uom_id: number | null },
+    it: ItemDto | null,
+) {
+    line.item_id = it?.id ?? null;
+
+    // reset search text once selected/cleared
+    lineItemSearch.value[idx] = '';
+
+    // auto-fill UOM if empty
+    if (it && !line.uom_id && it.base_uom_id) {
+        line.uom_id = it.base_uom_id;
+    }
+}
+
+function debounceSearchItemsRemote(idx: number, q: string) {
+    lineItemSearch.value[idx] = q;
+
+    const existing = lineSearchTimers.get(idx);
+    if (existing) window.clearTimeout(existing);
+
+    const timer = window.setTimeout(async () => {
+        const query = (lineItemSearch.value[idx] ?? '').trim();
+        if (query.length < 2) return;
+
+        lineItemLoading.value[idx] = true;
+        try {
+            const res = await fetchItems({ search: query, limit: 50 });
+            items.value = res.data;
+        } catch {
+            // ignore
+        } finally {
+            lineItemLoading.value[idx] = false;
+        }
+    }, 300);
+
+    lineSearchTimers.set(idx, timer);
+}
+
 const departments = ref<DepartmentDto[]>([]);
 
 const page = usePage();
@@ -37,7 +94,7 @@ const form = reactive({
     remarks: '' as string,
     lines: [
         {
-            item_id: 0,
+            item_id: null as number | null,
             quantity: 1,
             uom_id: null as number | null,
             remarks: '' as string,
@@ -46,6 +103,10 @@ const form = reactive({
 });
 
 const isEdit = computed(() => props.purchaseRequestId !== null);
+
+function getItemById(id: number | null): ItemDto | null {
+    return items.value.find((i) => i.id === id) || null;
+}
 
 function setFromDto(dto: PurchaseRequestDto) {
     form.department_id = dto.department_id;
@@ -124,12 +185,12 @@ async function doSearchItems() {
 }
 
 function onSelectItem(line: {
-    item_id: number;
+    item_id: number | null;
     quantity: number;
     uom_id: number | null;
     remarks: string;
 }) {
-    if (line.uom_id) return;
+    if (line.item_id && line.uom_id) return;
 
     const it = items.value.find((x) => x.id === line.item_id);
     if (!it) return;
@@ -309,20 +370,50 @@ onMounted(load);
                     >
                         <div class="md:col-span-5">
                             <label class="text-xs font-medium">Item</label>
-                            <select
-                                v-model.number="line.item_id"
-                                class="mt-1 w-full rounded-md border bg-background px-2 py-2"
-                                @change="onSelectItem(line)"
+                            <Multiselect
+                                class="mt-1"
+                                :model-value="getLineSelectedItem(line)"
+                                :options="items"
+                                :searchable="true"
+                                :internal-search="false"
+                                :clear-on-select="true"
+                                :close-on-select="true"
+                                :preserve-search="true"
+                                :loading="!!lineItemLoading[idx]"
+                                :placeholder="'Search by SKU/name…'"
+                                track-by="id"
+                                label="name"
+                                @search-change="
+                                    (q: string) =>
+                                        debounceSearchItemsRemote(idx, q)
+                                "
+                                @update:model-value="
+                                    (it: ItemDto | null) =>
+                                        setLineSelectedItem(idx, line, it)
+                                "
                             >
-                                <option :value="0">Select item…</option>
-                                <option
-                                    v-for="it in items"
-                                    :key="it.id"
-                                    :value="it.id"
-                                >
-                                    {{ it.sku }} — {{ it.name }}
-                                </option>
-                            </select>
+                                <template #singleLabel="{ option }">
+                                    {{ formatItemLabel(option) }}
+                                </template>
+                                <template #option="{ option }">
+                                    {{ formatItemLabel(option) }}
+                                </template>
+                                <template #noResult>
+                                    <div
+                                        class="px-2 py-1 text-sm text-muted-foreground"
+                                    >
+                                        No item found
+                                    </div>
+                                </template>
+                                <template #noOptions>
+                                    <div
+                                        class="px-2 py-1 text-sm text-muted-foreground"
+                                    >
+                                        Type at least 2 characters…
+                                    </div>
+                                </template>
+                            </Multiselect>
+
                             <div
                                 v-if="lineError(idx, 'item_id')"
                                 class="mt-1 text-xs text-destructive"

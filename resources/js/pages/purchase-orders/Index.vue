@@ -18,13 +18,18 @@ import {
 } from '@/services/purchaseOrderApi';
 import { Head, Link, router } from '@inertiajs/vue3';
 import { computed, onMounted, ref } from 'vue';
+import Multiselect from 'vue-multiselect';
+import 'vue-multiselect/dist/vue-multiselect.css';
 
 const loading = ref(true);
 const error = ref<string | null>(null);
 const items = ref<PurchaseOrderDto[]>([]);
 
 const search = ref('');
-const status = ref('');
+const status = ref<{ value: string; label: string }>({
+    value: '',
+    label: 'All',
+});
 const page = ref(1);
 const hasNext = ref(false);
 const hasPrev = computed(() => page.value > 1);
@@ -36,7 +41,7 @@ async function load() {
     try {
         const res = await listPurchaseOrders({
             search: search.value || undefined,
-            status: status.value || undefined,
+            status: status.value.value || undefined,
             page: page.value,
         });
 
@@ -92,36 +97,49 @@ onMounted(load);
             </Button>
         </div>
 
-        <div class="mt-6 grid gap-3 md:grid-cols-12">
+        <div class="mt-6 grid items-end gap-3 md:grid-cols-12">
             <div class="md:col-span-6">
                 <label class="text-sm font-medium">Search</label>
-                <Input v-model="search" placeholder="PO number / supplier" />
+                <div class="mt-1 flex h-10 items-center">
+                    <Input
+                        v-model="search"
+                        class="h-10"
+                        placeholder="PO number / supplier"
+                    />
+                </div>
             </div>
             <div class="md:col-span-4">
                 <label class="text-sm font-medium">Status</label>
-                <select
-                    v-model="status"
-                    class="mt-1 w-full rounded-md border bg-background px-2 py-2"
-                >
-                    <option value="">All</option>
-                    <option value="DRAFT">DRAFT</option>
-                    <option value="SUBMITTED">SUBMITTED</option>
-                    <option value="IN_APPROVAL">IN APPROVAL</option>
-                    <option value="APPROVED">APPROVED</option>
-                    <option value="SENT">SENT</option>
-                    <option value="CLOSED">CLOSED</option>
-                    <option value="CANCELLED">CANCELLED</option>
-                </select>
+                <div class="mt-1 flex h-10 items-center">
+                    <Multiselect
+                        v-model="status"
+                        :options="[
+                            { value: '', label: 'All' },
+                            { value: 'DRAFT', label: 'DRAFT' },
+                            { value: 'SUBMITTED', label: 'SUBMITTED' },
+                            { value: 'IN_APPROVAL', label: 'IN APPROVAL' },
+                            { value: 'APPROVED', label: 'APPROVED' },
+                            { value: 'SENT', label: 'SENT' },
+                            { value: 'CLOSED', label: 'CLOSED' },
+                            { value: 'CANCELLED', label: 'CANCELLED' },
+                        ]"
+                        track-by="value"
+                        label="label"
+                        class="w-full"
+                    />
+                </div>
             </div>
-            <div class="flex items-end md:col-span-2">
-                <Button
-                    type="button"
-                    variant="outline"
-                    class="w-full"
-                    @click="applyFilters"
-                >
-                    Apply
-                </Button>
+            <div class="md:col-span-2">
+                <div class="mt-1 flex h-10 items-center">
+                    <Button
+                        type="button"
+                        variant="outline"
+                        class="h-10 w-full"
+                        @click="applyFilters"
+                    >
+                        Apply
+                    </Button>
+                </div>
             </div>
         </div>
 

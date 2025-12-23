@@ -5,6 +5,10 @@ import AppLayout from '@/layouts/AppLayout.vue';
 import { createGoodsReceipt } from '@/services/goodsReceiptApi';
 import { apiFetch } from '@/services/http';
 import { fetchWarehouses, type WarehouseDto } from '@/services/masterDataApi';
+import {
+    listPurchaseOrders,
+    PurchaseOrderDto,
+} from '@/services/purchaseOrderApi';
 import { Head, Link, router } from '@inertiajs/vue3';
 import { computed, onMounted, reactive, ref } from 'vue';
 
@@ -36,7 +40,7 @@ type PurchaseOrderDtoLite = {
 };
 
 const form = reactive({
-    purchase_order_id: 0,
+    purchase_order_id: null as number | null,
     warehouse_id: null as number | null,
     remarks: '' as string,
     lines: [] as Array<{
@@ -47,6 +51,7 @@ const form = reactive({
 });
 
 const po = ref<PurchaseOrderDtoLite | null>(null);
+const pos = ref<PurchaseOrderDto[]>([]);
 
 const isEdit = computed(() => props.goodsReceiptId !== null);
 
@@ -82,6 +87,16 @@ async function loadPo(poId: number) {
     }));
 }
 
+async function loadPOs() {
+    const res = await listPurchaseOrders({
+        search: undefined,
+        status: 'APPROVED',
+        page: 1,
+    });
+    const paginated = (res as any).data;
+    pos.value = (paginated?.data ?? []) as PurchaseOrderDto[];
+}
+
 async function load() {
     loading.value = true;
     error.value = null;
@@ -91,8 +106,7 @@ async function load() {
             // MVP: create-only page
             throw new Error('Edit GR is not supported in MVP');
         }
-
-        await loadWarehouses();
+        await Promise.all([loadWarehouses(), loadPOs()]);
     } catch (e: any) {
         error.value = e?.message ?? 'Failed to load form';
     } finally {
@@ -164,7 +178,20 @@ onMounted(load);
             <div class="grid gap-4 md:grid-cols-3">
                 <div>
                     <label class="text-sm font-medium">Purchase Order ID</label>
-                    <Input
+                    <select
+                        v-model.number="form.purchase_order_id"
+                        class="mt-1 w-full rounded-md border bg-background px-2 py-2"
+                        @change="
+                            form.purchase_order_id &&
+                            loadPo(form.purchase_order_id)
+                        "
+                    >
+                        <option :value="null">Select Purchase Order</option>
+                        <option v-for="po in pos" :key="po.id" :value="po.id">
+                            {{ po.po_number }}
+                        </option>
+                    </select>
+                    <!-- <Input
                         v-model.number="form.purchase_order_id"
                         placeholder="Enter PO id"
                         type="number"
@@ -175,7 +202,7 @@ onMounted(load);
                     />
                     <p class="mt-1 text-xs text-muted-foreground">
                         MVP: input PO ID manually.
-                    </p>
+                    </p> -->
                 </div>
 
                 <div>

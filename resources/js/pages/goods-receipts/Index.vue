@@ -16,12 +16,17 @@ import {
 } from '@/services/goodsReceiptApi';
 import { Head, Link, router } from '@inertiajs/vue3';
 import { onMounted, ref } from 'vue';
+import Multiselect from 'vue-multiselect';
+import 'vue-multiselect/dist/vue-multiselect.css';
 
 const loading = ref(true);
 const error = ref<string | null>(null);
 const receipts = ref<GoodsReceiptDto[]>([]);
 const search = ref('');
-const status = ref('');
+const status = ref<{ value: string; label: string }>({
+    value: '',
+    label: 'All',
+});
 
 async function load() {
     loading.value = true;
@@ -30,7 +35,7 @@ async function load() {
     try {
         const res = await listGoodsReceipts({
             search: search.value,
-            status: status.value,
+            status: status.value.value || undefined,
         });
         const page = (res as any).data;
         receipts.value = (page?.data ?? []) as GoodsReceiptDto[];
@@ -61,29 +66,46 @@ onMounted(load);
             </Button>
         </div>
 
-        <div class="mt-6 grid gap-2 md:grid-cols-3">
-            <div>
+        <div class="mt-6 grid items-end gap-3 md:grid-cols-12">
+            <div class="md:col-span-6">
                 <label class="text-sm font-medium">Search</label>
-                <Input v-model="search" placeholder="GR number or PO number" />
+                <div class="mt-1 flex h-10 items-center">
+                    <Input
+                        v-model="search"
+                        class="h-10"
+                        placeholder="GR number or PO number"
+                    />
+                </div>
             </div>
 
-            <div>
+            <div class="md:col-span-4">
                 <label class="text-sm font-medium">Status</label>
-                <select
-                    v-model="status"
-                    class="mt-1 w-full rounded-md border bg-background px-2 py-2"
-                >
-                    <option value="">(all)</option>
-                    <option value="DRAFT">DRAFT</option>
-                    <option value="POSTED">POSTED</option>
-                    <option value="CANCELLED">CANCELLED</option>
-                </select>
+                <div class="mt-1 flex h-10 items-center">
+                    <Multiselect
+                        v-model="status"
+                        :options="[
+                            { value: '', label: 'All' },
+                            { value: 'DRAFT', label: 'DRAFT' },
+                            { value: 'POSTED', label: 'POSTED' },
+                            { value: 'CANCELLED', label: 'CANCELLED' },
+                        ]"
+                        track-by="value"
+                        label="label"
+                        class="w-full"
+                    />
+                </div>
             </div>
 
-            <div class="flex items-end">
-                <Button variant="outline" type="button" @click="load"
-                    >Search</Button
-                >
+            <div class="md:col-span-2">
+                <div class="mt-1 flex h-10 items-center">
+                    <Button
+                        variant="outline"
+                        type="button"
+                        class="h-10 w-full"
+                        @click="load"
+                        >Search</Button
+                    >
+                </div>
             </div>
         </div>
 

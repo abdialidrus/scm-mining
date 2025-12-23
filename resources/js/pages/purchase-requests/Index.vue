@@ -17,13 +17,18 @@ import {
 } from '@/services/purchaseRequestApi';
 import { Head, Link, router } from '@inertiajs/vue3';
 import { computed, onMounted, ref } from 'vue';
+import Multiselect from 'vue-multiselect';
+import 'vue-multiselect/dist/vue-multiselect.css';
 
 const loading = ref(true);
 const error = ref<string | null>(null);
 const items = ref<PurchaseRequestListItemDto[]>([]);
 
 const search = ref('');
-const status = ref<string>('');
+const status = ref<{ value: string; label: string }>({
+    value: '',
+    label: 'All',
+});
 const page = ref(1);
 const hasNext = ref(false);
 const hasPrev = computed(() => page.value > 1);
@@ -35,7 +40,7 @@ async function load() {
     try {
         const res = await listPurchaseRequests({
             search: search.value || undefined,
-            status: status.value || undefined,
+            status: status.value.value || undefined,
             page: page.value,
         });
 
@@ -97,40 +102,62 @@ onMounted(load);
 
     <AppLayout>
         <div class="flex items-center justify-between">
-            <h1 class="text-xl font-semibold">Purchase Requests</h1>
+            <div>
+                <h1 class="text-xl font-semibold">Purchase Requests</h1>
+                <p class="text-sm text-muted-foreground">
+                    Manage your purchase requests.
+                </p>
+            </div>
 
             <Button as-child>
                 <Link href="/purchase-requests/create">Create</Link>
             </Button>
         </div>
 
-        <div class="mt-6 grid gap-3 md:grid-cols-12">
+        <div class="mt-6 grid items-end gap-3 md:grid-cols-12">
             <div class="md:col-span-6">
                 <label class="text-sm font-medium">Search</label>
-                <Input v-model="search" placeholder="PR number" />
+                <div class="mt-1 flex h-10 items-center">
+                    <Input
+                        v-model="search"
+                        class="h-10"
+                        placeholder="PR number"
+                    />
+                </div>
             </div>
             <div class="md:col-span-4">
                 <label class="text-sm font-medium">Status</label>
-                <select
-                    v-model="status"
-                    class="mt-1 w-full rounded-md border bg-background px-2 py-2"
-                >
-                    <option value="">All</option>
-                    <option value="DRAFT">DRAFT</option>
-                    <option value="SUBMITTED">SUBMITTED</option>
-                    <option value="APPROVED">APPROVED</option>
-                    <option value="CONVERTED_TO_PO">CONVERTED_TO_PO</option>
-                </select>
+                <div class="mt-1 flex h-10 items-center">
+                    <Multiselect
+                        v-model="status"
+                        :options="[
+                            { value: '', label: 'All' },
+                            { value: 'DRAFT', label: 'DRAFT' },
+                            { value: 'SUBMITTED', label: 'SUBMITTED' },
+                            { value: 'APPROVED', label: 'APPROVED' },
+                            {
+                                value: 'CONVERTED_TO_PO',
+                                label: 'CONVERTED_TO_PO',
+                            },
+                        ]"
+                        track-by="value"
+                        label="label"
+                        class="w-full"
+                    />
+                </div>
             </div>
-            <div class="flex items-end md:col-span-2">
-                <Button
-                    type="button"
-                    variant="outline"
-                    class="w-full"
-                    @click="applyFilters"
-                >
-                    Apply
-                </Button>
+            <div class="md:col-span-2">
+                <label class="text-sm font-medium opacity-0">Apply</label>
+                <div class="mt-1 flex h-10 items-center">
+                    <Button
+                        type="button"
+                        variant="outline"
+                        class="h-10 w-full"
+                        @click="applyFilters"
+                    >
+                        Apply
+                    </Button>
+                </div>
             </div>
         </div>
 
