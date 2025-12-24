@@ -261,7 +261,7 @@ onMounted(load);
                 </Table>
             </div>
 
-            <div class="mt-4 flex items-center justify-between">
+            <div class="flex items-center justify-between">
                 <div
                     class="hidden flex-1 text-sm text-muted-foreground lg:flex"
                 >
