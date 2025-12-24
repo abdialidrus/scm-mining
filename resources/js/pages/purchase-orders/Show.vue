@@ -306,101 +306,41 @@ onMounted(load);
 
             <div v-else-if="po" class="mt-6 space-y-6">
                 <div class="rounded-lg border p-4">
-                    <div class="grid gap-2 md:grid-cols-3">
+                    <div
+                        class="flex flex-wrap items-start justify-between gap-3"
+                    >
                         <div>
-                            <span class="text-xs text-muted-foreground"
-                                >Supplier</span
-                            >
-                            <template v-if="editingDraft">
-                                <input
-                                    v-model.number="draftForm.supplier_id"
-                                    type="number"
-                                    class="mt-1 w-full rounded-md border bg-background px-2 py-1 text-sm"
-                                />
-                            </template>
-                            <template v-else>
-                                {{ po.supplier?.name ?? po.supplier_id }}
-                            </template>
-                        </div>
-
-                        <div>
-                            <span class="text-xs text-muted-foreground"
-                                >Currency</span
-                            >
-                            <template v-if="editingDraft">
-                                <input
-                                    v-model="draftForm.currency_code"
-                                    type="text"
-                                    class="mt-1 w-full rounded-md border bg-background px-2 py-1 text-sm"
-                                />
-                            </template>
-                            <template v-else> {{ po.currency_code }} </template>
-                        </div>
-
-                        <div>
-                            <span class="text-xs text-muted-foreground"
-                                >Status</span
-                            >
-                            {{ po.status }}
-                        </div>
-
-                        <div>
-                            <span class="text-xs text-muted-foreground"
-                                >Tax Rate</span
-                            >
-                            <template v-if="editingDraft">
-                                <input
-                                    v-model.number="draftForm.tax_rate"
-                                    type="number"
-                                    step="0.000001"
-                                    min="0"
-                                    max="1"
-                                    class="mt-1 w-full rounded-md border bg-background px-2 py-1 text-sm"
-                                />
-                            </template>
-                            <template v-else> {{ po.tax_rate }} </template>
-                        </div>
-
-                        <div>
-                            <span class="text-xs text-muted-foreground"
-                                >Subtotal</span
-                            >
-                            <div class="mt-1 text-sm font-medium">
-                                {{
-                                    formatCurrency(displaySubtotal as any, {
-                                        currency: po.currency_code,
-                                    })
-                                }}
-                            </div>
-                        </div>
-
-                        <div>
-                            <span class="text-xs text-muted-foreground"
-                                >PPN</span
-                            >
-                            <div class="mt-1 text-sm font-medium">
-                                {{
-                                    formatCurrency(displayTax as any, {
-                                        currency: po.currency_code,
-                                    })
-                                }}
-                            </div>
-                        </div>
-
-                        <div class="md:col-span-3">
-                            <div
-                                class="mt-2 flex items-center justify-between rounded-md border bg-muted/20 px-3 py-2"
-                            >
+                            <div class="flex items-center gap-2">
                                 <div class="text-sm font-semibold">
-                                    Grand Total
+                                    Purchase Order
                                 </div>
-                                <div class="text-base font-semibold">
-                                    {{
-                                        formatCurrency(displayTotal as any, {
-                                            currency: po.currency_code,
-                                        })
-                                    }}
-                                </div>
+                                <StatusBadge :status="po.status" />
+                            </div>
+                            <div class="mt-1 text-xs text-muted-foreground">
+                                PO No:
+                                <span class="font-medium text-foreground">{{
+                                    po.po_number
+                                }}</span>
+                            </div>
+                        </div>
+
+                        <div class="text-right text-xs text-muted-foreground">
+                            <div>
+                                Created at:
+                                <span class="text-foreground">{{
+                                    formatDateTime(po.created_at)
+                                }}</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mt-4 grid gap-3 md:grid-cols-12">
+                        <div class="md:col-span-6">
+                            <div class="text-xs text-muted-foreground">
+                                Supplier
+                            </div>
+                            <div class="mt-1 text-sm">
+                                {{ po.supplier?.name ?? po.supplier_id }}
                             </div>
                         </div>
                     </div>

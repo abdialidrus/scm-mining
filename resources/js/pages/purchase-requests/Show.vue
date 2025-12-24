@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import StatusBadge from '@/components/StatusBadge.vue';
 import StatusHistoryTable from '@/components/StatusHistoryTable.vue';
 import Button from '@/components/ui/button/Button.vue';
 import {
@@ -205,52 +206,88 @@ onMounted(load);
                 </div>
             </div>
 
-            <div
-                v-if="error"
-                class="mt-4 rounded-md border border-destructive/40 bg-destructive/10 p-3 text-sm"
-            >
-                <div class="font-medium">{{ error }}</div>
-                <ul
-                    v-if="Object.keys(fieldErrors).length"
-                    class="mt-2 list-disc pl-5"
-                >
-                    <li v-for="(errs, k) in fieldErrors" :key="k">
-                        <span class="font-medium">{{ k }}:</span>
-                        {{ errs.join(', ') }}
-                    </li>
-                </ul>
-            </div>
-
             <div v-if="loading" class="mt-6 text-sm text-muted-foreground">
                 Loading…
             </div>
 
             <div v-else-if="pr" class="mt-6 space-y-6">
-                <div class="print-block rounded-lg border p-4">
-                    <div class="grid gap-2 md:grid-cols-2">
-                        <div>
-                            <span class="text-xs text-muted-foreground"
-                                >Department</span
+                <!-- Consistent header info card (like GR) -->
+                <div v-if="pr" class="mt-6">
+                    <div class="rounded-lg border p-4">
+                        <div
+                            class="flex flex-wrap items-start justify-between gap-3"
+                        >
+                            <div>
+                                <div class="flex items-center gap-2">
+                                    <div class="text-sm font-semibold">
+                                        Purchase Request
+                                    </div>
+                                    <StatusBadge :status="pr.status" />
+                                </div>
+                                <div class="mt-1 text-xs text-muted-foreground">
+                                    PR No:
+                                    <span class="font-medium text-foreground">{{
+                                        pr.pr_number
+                                    }}</span>
+                                </div>
+                            </div>
+
+                            <div
+                                class="text-right text-xs text-muted-foreground"
                             >
-                            — {{ pr.department?.code ?? pr.department_id }}
+                                <div>
+                                    Created at:
+                                    <span class="text-foreground">{{
+                                        formatDateTime(pr.created_at)
+                                    }}</span>
+                                </div>
+                            </div>
                         </div>
-                        <div>
-                            <span class="text-xs text-muted-foreground"
-                                >Requester</span
-                            >
-                            — {{ pr.requester?.name ?? pr.requester_user_id }}
-                        </div>
-                        <div v-if="pr.approvedBy" class="md:col-span-2">
-                            <span class="text-xs text-muted-foreground"
-                                >Approved By</span
-                            >
-                            — {{ pr.approvedBy.name }}
-                        </div>
-                        <div class="md:col-span-2">
-                            <span class="text-xs text-muted-foreground"
-                                >Remarks</span
-                            >
-                            — {{ pr.remarks ?? '-' }}
+
+                        <div class="mt-4 grid gap-3 md:grid-cols-12">
+                            <div class="md:col-span-6">
+                                <div class="text-xs text-muted-foreground">
+                                    Department
+                                </div>
+                                <div class="mt-1 text-sm">
+                                    {{
+                                        pr.department
+                                            ? `${pr.department.code} — ${pr.department.name}`
+                                            : pr.department_id
+                                    }}
+                                </div>
+                            </div>
+
+                            <div class="md:col-span-6">
+                                <div class="text-xs text-muted-foreground">
+                                    Requester
+                                </div>
+                                <div class="mt-1 text-sm">
+                                    {{
+                                        pr.requester?.name ??
+                                        pr.requester_user_id ??
+                                        '-'
+                                    }}
+                                </div>
+                            </div>
+
+                            <div v-if="pr.approvedBy" class="md:col-span-6">
+                                <div class="text-xs text-muted-foreground">
+                                    Approved By
+                                </div>
+                                <div class="mt-1 text-sm">
+                                    {{ pr.approvedBy.name }}
+                                </div>
+                            </div>
+
+                            <div class="md:col-span-12">
+                                <div class="text-xs text-muted-foreground">
+                                    Remarks
+                                </div>
+                                <div class="mt-1 text-sm">
+                                    {{ pr.remarks || '-' }}
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -372,6 +409,13 @@ onMounted(load);
                         </div>
                     </div>
                 </section>
+            </div>
+
+            <div
+                v-if="error"
+                class="mt-4 rounded-md border border-destructive/40 bg-destructive/10 p-3 text-sm"
+            >
+                {{ error }}
             </div>
         </div>
     </AppLayout>

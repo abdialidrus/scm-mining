@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import StatusBadge from '@/components/StatusBadge.vue';
 import StatusHistoryTable from '@/components/StatusHistoryTable.vue';
 import Button from '@/components/ui/button/Button.vue';
 import AppLayout from '@/layouts/AppLayout.vue';
@@ -154,27 +155,85 @@ onMounted(load);
 
             <div v-else-if="gr" class="mt-6 space-y-6">
                 <div class="rounded-lg border p-4">
-                    <div class="grid gap-2 md:grid-cols-2">
+                    <div
+                        class="flex flex-wrap items-start justify-between gap-3"
+                    >
                         <div>
-                            <span class="text-xs text-muted-foreground"
-                                >PO</span
-                            >
-                            —
-                            {{
-                                gr.purchaseOrder?.po_number ??
-                                gr.purchase_order_id
-                            }}
+                            <div class="flex items-center gap-2">
+                                <div class="text-sm font-semibold">
+                                    Goods Receipt
+                                </div>
+                                <StatusBadge :status="gr.status" />
+                            </div>
+                            <div class="mt-1 text-xs text-muted-foreground">
+                                GR No:
+                                <span class="font-medium text-foreground">{{
+                                    gr.gr_number
+                                }}</span>
+                            </div>
                         </div>
-                        <div>
-                            <span class="text-xs text-muted-foreground"
-                                >Warehouse</span
-                            >
-                            —
-                            {{
-                                gr.warehouse
-                                    ? `${gr.warehouse.code} — ${gr.warehouse.name}`
-                                    : gr.warehouse_id
-                            }}
+
+                        <div class="text-right text-xs text-muted-foreground">
+                            <div>
+                                Received at:
+                                <span class="text-foreground">{{
+                                    formatDateTime(gr.received_at)
+                                }}</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mt-4 grid gap-3 md:grid-cols-12">
+                        <div class="md:col-span-6">
+                            <div class="text-xs text-muted-foreground">
+                                Purchase Order
+                            </div>
+                            <div class="mt-1 text-sm">
+                                <Link
+                                    v-if="gr.purchase_order_id"
+                                    :href="`/purchase-orders/${gr.purchase_order_id}`"
+                                    class="font-medium hover:underline"
+                                >
+                                    {{
+                                        gr.purchaseOrder?.po_number ??
+                                        `PO #${gr.purchase_order_id}`
+                                    }}
+                                </Link>
+                                <span v-else class="text-muted-foreground"
+                                    >-</span
+                                >
+                            </div>
+                        </div>
+
+                        <div class="md:col-span-6">
+                            <div class="text-xs text-muted-foreground">
+                                Warehouse
+                            </div>
+                            <div class="mt-1 text-sm">
+                                <Link
+                                    v-if="gr.warehouse_id"
+                                    :href="`/master-data/warehouses/${gr.warehouse_id}`"
+                                    class="font-medium hover:underline"
+                                >
+                                    {{
+                                        gr.warehouse
+                                            ? `${gr.warehouse.code} — ${gr.warehouse.name}`
+                                            : `Warehouse #${gr.warehouse_id}`
+                                    }}
+                                </Link>
+                                <span v-else class="text-muted-foreground"
+                                    >-</span
+                                >
+                            </div>
+                        </div>
+
+                        <div class="md:col-span-12">
+                            <div class="text-xs text-muted-foreground">
+                                Remarks
+                            </div>
+                            <div class="mt-1 text-sm">
+                                {{ gr.remarks || '-' }}
+                            </div>
                         </div>
                     </div>
                 </div>
