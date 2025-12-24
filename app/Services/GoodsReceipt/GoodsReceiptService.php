@@ -7,8 +7,11 @@ use App\Models\GoodsReceiptLine;
 use App\Models\GoodsReceiptStatusHistory;
 use App\Models\PurchaseOrder;
 use App\Models\PurchaseOrderLine;
+use App\Models\StockMovement;
 use App\Models\User;
 use App\Models\Warehouse;
+use App\Models\WarehouseLocation;
+use App\Services\Inventory\StockMovementService;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\DB;
@@ -18,6 +21,7 @@ class GoodsReceiptService
 {
     public function __construct(
         private readonly GoodsReceiptNumberGenerator $numberGenerator,
+        private readonly StockMovementService $stockMovementService,
     ) {}
 
     /**
@@ -198,11 +202,47 @@ class GoodsReceiptService
                 }
             }
 
+            // Resolve default RECEIVING location for warehouse.
+            $receivingLocationId = WarehouseLocation::query()
+                ->where('warehouse_id', $gr->warehouse_id)
+                ->where('type', WarehouseLocation::TYPE_RECEIVING)
+                ->where('is_default', true)
+                ->where('is_active', true)
+                ->value('id');
+
+            if (!$receivingLocationId) {
+                throw ValidationException::withMessages([
+                    'warehouse_id' => 'Default RECEIVING location not found for this warehouse.',
+                ]);
+            }
+
             $from = $gr->status;
             $gr->status = GoodsReceipt::STATUS_POSTED;
             $gr->posted_at = now();
             $gr->posted_by_user_id = $actor->id;
             $gr->save();
+
+            // Create stock movements (ledger) into RECEIVING.
+            foreach ($gr->lines as $line) {
+                /** @var GoodsReceiptLine $line */
+                $this->stockMovementService->createMovement([
+                    'item_id' => (int) $line->item_id,
+                    'uom_id' => $line->uom_id ? (int) $line->uom_id : null,
+                    'source_location_id' => null, // inbound
+                    'destination_location_id' => (int) $receivingLocationId,
+                    'qty' => (float) $line->received_quantity,
+                    'reference_type' => StockMovement::REF_GOODS_RECEIPT,
+                    'reference_id' => (int) $gr->id,
+                    'created_by' => (int) $actor->id,
+                    'movement_at' => $gr->posted_at,
+                    'meta' => [
+                        'gr_number' => $gr->gr_number,
+                        'goods_receipt_line_id' => (int) $line->id,
+                        'purchase_order_id' => (int) $gr->purchase_order_id,
+                        'purchase_order_line_id' => (int) $line->purchase_order_line_id,
+                    ],
+                ]);
+            }
 
             $this->recordStatusHistory($gr, $from, $gr->status, 'post', $actor);
 

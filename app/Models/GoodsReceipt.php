@@ -11,6 +11,8 @@ class GoodsReceipt extends Model
 
     public const STATUS_DRAFT = 'DRAFT';
     public const STATUS_POSTED = 'POSTED';
+    public const STATUS_PUT_AWAY_PARTIAL = 'PUT_AWAY_PARTIAL';
+    public const STATUS_PUT_AWAY_COMPLETED = 'PUT_AWAY_COMPLETED';
     public const STATUS_CANCELLED = 'CANCELLED';
 
     protected $fillable = [

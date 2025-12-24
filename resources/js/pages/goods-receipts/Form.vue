@@ -72,7 +72,7 @@ function lineError(
 
 async function loadWarehouses() {
     const res = await fetchWarehouses();
-    warehouses.value = res.data.filter((w) => w.is_active);
+    warehouses.value = res.data.filter((w: WarehouseDto) => w.is_active);
 }
 
 async function loadPo(poId: number) {

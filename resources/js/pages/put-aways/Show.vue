@@ -5,68 +5,67 @@ import Button from '@/components/ui/button/Button.vue';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { formatQty } from '@/lib/format';
 import {
-    cancelGoodsReceipt,
-    getGoodsReceipt,
-    postGoodsReceipt,
-    type GoodsReceiptDto,
-} from '@/services/goodsReceiptApi';
+    cancelPutAway,
+    getPutAway,
+    postPutAway,
+    type PutAwayDto,
+} from '@/services/putAwayApi';
 import { BreadcrumbItem } from '@/types';
-import { Head, Link, router } from '@inertiajs/vue3';
+import { Head, Link } from '@inertiajs/vue3';
 import { computed, onMounted, ref } from 'vue';
 
-const props = defineProps<{ goodsReceiptId: number }>();
+const props = defineProps<{ putAwayId: number }>();
 
 const loading = ref(true);
 const acting = ref(false);
 const error = ref<string | null>(null);
-const gr = ref<GoodsReceiptDto | null>(null);
+const pa = ref<PutAwayDto | null>(null);
 
-const title = computed(() => gr.value?.gr_number ?? 'Goods Receipt');
+const title = computed(() => pa.value?.put_away_number ?? 'Put Away');
 
 async function load() {
     loading.value = true;
     error.value = null;
 
     try {
-        const res = await getGoodsReceipt(props.goodsReceiptId);
-        gr.value = res.data;
+        const res = await getPutAway(props.putAwayId);
+        pa.value = res.data;
     } catch (e: any) {
-        error.value = e?.message ?? 'Failed to load goods receipt';
+        error.value = e?.message ?? 'Failed to load put away';
     } finally {
         loading.value = false;
     }
 }
 
 async function post() {
-    if (!gr.value) return;
-    if (!confirm(`Post GR ${gr.value.gr_number}?`)) return;
+    if (!pa.value) return;
+    if (!confirm(`Post Put Away ${pa.value.put_away_number}?`)) return;
 
     acting.value = true;
     error.value = null;
 
     try {
-        const res = await postGoodsReceipt(gr.value.id);
-        gr.value = res.data;
+        const res = await postPutAway(pa.value.id);
+        pa.value = res.data;
     } catch (e: any) {
-        error.value = e?.payload?.message ?? e?.message ?? 'Failed to post GR';
+        error.value = e?.payload?.message ?? e?.message ?? 'Failed to post';
     } finally {
         acting.value = false;
     }
 }
 
 async function cancel() {
-    if (!gr.value) return;
-    if (!confirm(`Cancel GR ${gr.value.gr_number}?`)) return;
+    if (!pa.value) return;
+    if (!confirm(`Cancel Put Away ${pa.value.put_away_number}?`)) return;
 
     acting.value = true;
     error.value = null;
 
     try {
-        const res = await cancelGoodsReceipt(gr.value.id, null);
-        gr.value = res.data;
+        const res = await cancelPutAway(pa.value.id, null);
+        pa.value = res.data;
     } catch (e: any) {
-        error.value =
-            e?.payload?.message ?? e?.message ?? 'Failed to cancel GR';
+        error.value = e?.payload?.message ?? e?.message ?? 'Failed to cancel';
     } finally {
         acting.value = false;
     }
@@ -86,14 +85,8 @@ function formatDateTime(value?: string | null) {
 }
 
 const breadcrumbs: BreadcrumbItem[] = [
-    {
-        title: 'Goods Receipts',
-        href: '/goods-receipts',
-    },
-    {
-        title: 'Goods Receipt Details',
-        href: '#',
-    },
+    { title: 'Put Aways', href: '/put-aways' },
+    { title: 'Put Away Details', href: '#' },
 ];
 
 onMounted(load);
@@ -109,36 +102,20 @@ onMounted(load);
             <div class="flex items-center justify-between">
                 <div>
                     <h1 class="text-xl font-semibold">
-                        {{ gr?.gr_number ?? 'Goods Receipt' }}
+                        {{ pa?.put_away_number ?? 'Put Away' }}
                     </h1>
                     <p class="text-sm text-muted-foreground">
-                        Status: {{ gr?.status ?? '-' }}
+                        Status: {{ pa?.status ?? '-' }}
                     </p>
                 </div>
 
                 <div class="flex gap-2">
                     <Button variant="outline" as-child>
-                        <Link href="/goods-receipts">Back</Link>
+                        <Link href="/put-aways">Back</Link>
                     </Button>
 
                     <Button
-                        v-if="
-                            gr?.status === 'POSTED' ||
-                            gr?.status === 'PUT_AWAY_PARTIAL'
-                        "
-                        variant="outline"
-                        type="button"
-                        @click="
-                            router.visit(
-                                `/put-aways/create?goods_receipt_id=${gr?.id}`,
-                            )
-                        "
-                    >
-                        Put Away
-                    </Button>
-
-                    <Button
-                        v-if="gr?.status === 'DRAFT'"
+                        v-if="pa?.status === 'DRAFT'"
                         :disabled="acting"
                         type="button"
                         @click="post"
@@ -147,7 +124,7 @@ onMounted(load);
                     </Button>
 
                     <Button
-                        v-if="gr?.status === 'DRAFT'"
+                        v-if="pa?.status === 'DRAFT'"
                         variant="destructive"
                         :disabled="acting"
                         type="button"
@@ -169,7 +146,7 @@ onMounted(load);
                 Loading...
             </div>
 
-            <div v-else-if="gr" class="mt-6 space-y-6">
+            <div v-else-if="pa" class="mt-6 space-y-6">
                 <div class="rounded-lg border p-4">
                     <div
                         class="flex flex-wrap items-start justify-between gap-3"
@@ -177,24 +154,24 @@ onMounted(load);
                         <div>
                             <div class="flex items-center gap-2">
                                 <div class="text-sm font-semibold">
-                                    Goods Receipt
+                                    Put Away
                                 </div>
-                                <StatusBadge :status="gr.status" />
+                                <StatusBadge :status="pa.status" />
                             </div>
                             <div class="mt-1 text-xs text-muted-foreground">
-                                GR No:
-                                <span class="font-medium text-foreground">{{
-                                    gr.gr_number
-                                }}</span>
+                                PA No:
+                                <span class="font-medium text-foreground">
+                                    {{ pa.put_away_number }}
+                                </span>
                             </div>
                         </div>
 
                         <div class="text-right text-xs text-muted-foreground">
                             <div>
-                                Received at:
-                                <span class="text-foreground">{{
-                                    formatDateTime(gr.received_at)
-                                }}</span>
+                                Put away at:
+                                <span class="text-foreground">
+                                    {{ formatDateTime(pa.put_away_at) }}
+                                </span>
                             </div>
                         </div>
                     </div>
@@ -202,17 +179,17 @@ onMounted(load);
                     <div class="mt-4 grid gap-3 md:grid-cols-12">
                         <div class="md:col-span-6">
                             <div class="text-xs text-muted-foreground">
-                                Purchase Order
+                                Goods Receipt
                             </div>
                             <div class="mt-1 text-sm">
                                 <Link
-                                    v-if="gr.purchase_order_id"
-                                    :href="`/purchase-orders/${gr.purchase_order_id}`"
+                                    v-if="pa.goods_receipt_id"
+                                    :href="`/goods-receipts/${pa.goods_receipt_id}`"
                                     class="font-medium hover:underline"
                                 >
                                     {{
-                                        gr.purchaseOrder?.po_number ??
-                                        `PO #${gr.purchase_order_id}`
+                                        pa.goodsReceipt?.gr_number ??
+                                        `GR #${pa.goods_receipt_id}`
                                     }}
                                 </Link>
                                 <span v-else class="text-muted-foreground"
@@ -227,14 +204,14 @@ onMounted(load);
                             </div>
                             <div class="mt-1 text-sm">
                                 <Link
-                                    v-if="gr.warehouse_id"
-                                    :href="`/master-data/warehouses/${gr.warehouse_id}`"
+                                    v-if="pa.warehouse_id"
+                                    :href="`/master-data/warehouses/${pa.warehouse_id}`"
                                     class="font-medium hover:underline"
                                 >
                                     {{
-                                        gr.warehouse
-                                            ? `${gr.warehouse.code} — ${gr.warehouse.name}`
-                                            : `Warehouse #${gr.warehouse_id}`
+                                        pa.warehouse
+                                            ? `${pa.warehouse.code} — ${pa.warehouse.name}`
+                                            : `Warehouse #${pa.warehouse_id}`
                                     }}
                                 </Link>
                                 <span v-else class="text-muted-foreground"
@@ -248,7 +225,7 @@ onMounted(load);
                                 Remarks
                             </div>
                             <div class="mt-1 text-sm">
-                                {{ gr.remarks || '-' }}
+                                {{ pa.remarks || '-' }}
                             </div>
                         </div>
                     </div>
@@ -258,33 +235,46 @@ onMounted(load);
                     <h2 class="text-sm font-semibold">Lines</h2>
                     <div class="mt-3 space-y-2">
                         <div
-                            v-for="l in gr.lines ?? []"
+                            v-for="l in pa.lines ?? []"
                             :key="l.id"
-                            class="flex items-start justify-between gap-4 rounded-md border px-3 py-2"
+                            class="rounded-md border px-3 py-2"
                         >
-                            <div>
-                                <div class="text-sm font-medium">
-                                    {{ l.item?.sku ?? l.item_id }} —
-                                    {{ l.item?.name ?? '' }}
-                                </div>
-                                <div class="text-xs text-muted-foreground">
-                                    Ordered:
-                                    {{ formatQty(l.ordered_quantity) }} —
-                                    Received:
-                                    {{ formatQty(l.received_quantity) }}
-                                    {{ l.uom?.code ?? '' }}
-                                </div>
-                                <div
-                                    v-if="l.remarks"
-                                    class="text-xs text-muted-foreground"
-                                >
-                                    Notes: {{ l.remarks }}
+                            <div class="flex items-start justify-between gap-4">
+                                <div>
+                                    <div class="text-sm font-medium">
+                                        {{ l.item?.sku ?? l.item_id }} —
+                                        {{ l.item?.name ?? '' }}
+                                    </div>
+                                    <div class="text-xs text-muted-foreground">
+                                        Qty: {{ formatQty(l.qty) }}
+                                        {{ l.uom?.code ?? '' }}
+                                    </div>
+                                    <div class="text-xs text-muted-foreground">
+                                        From:
+                                        {{
+                                            l.sourceLocation
+                                                ? `${l.sourceLocation.code} — ${l.sourceLocation.name}`
+                                                : l.source_location_id
+                                        }}
+                                        → To:
+                                        {{
+                                            l.destinationLocation
+                                                ? `${l.destinationLocation.code} — ${l.destinationLocation.name}`
+                                                : l.destination_location_id
+                                        }}
+                                    </div>
+                                    <div
+                                        v-if="l.remarks"
+                                        class="text-xs text-muted-foreground"
+                                    >
+                                        Notes: {{ l.remarks }}
+                                    </div>
                                 </div>
                             </div>
                         </div>
 
                         <div
-                            v-if="(gr.lines ?? []).length === 0"
+                            v-if="(pa.lines ?? []).length === 0"
                             class="text-sm text-muted-foreground"
                         >
                             No lines.
@@ -296,7 +286,7 @@ onMounted(load);
                     <h2 class="text-sm font-semibold">History</h2>
                     <div class="mt-3">
                         <StatusHistoryTable
-                            :rows="gr.status_histories ?? []"
+                            :rows="pa.status_histories ?? []"
                             :format-date-time="formatDateTime"
                             empty-text="No history."
                         />

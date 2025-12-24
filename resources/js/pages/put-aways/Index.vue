@@ -13,10 +13,7 @@ import {
     TableRow,
 } from '@/components/ui/table';
 import AppLayout from '@/layouts/AppLayout.vue';
-import {
-    listGoodsReceipts,
-    type GoodsReceiptDto,
-} from '@/services/goodsReceiptApi';
+import { listPutAways, type PutAwayDto } from '@/services/putAwayApi';
 import { BreadcrumbItem } from '@/types';
 import { Head, Link, router } from '@inertiajs/vue3';
 import { computed, onMounted, ref } from 'vue';
@@ -32,16 +29,18 @@ import {
 
 const loading = ref(true);
 const error = ref<string | null>(null);
-const receipts = ref<GoodsReceiptDto[]>([]);
+const putAways = ref<PutAwayDto[]>([]);
+
 const search = ref('');
 const status = ref<{ value: string; label: string }>({
     value: '',
     label: 'All',
 });
+
 const page = ref(1);
 const perPage = ref(10);
-const hasNext = ref(false);
 const totalPages = ref(1);
+const hasNext = ref(false);
 const hasPrev = computed(() => page.value > 1);
 
 async function load() {
@@ -49,14 +48,15 @@ async function load() {
     error.value = null;
 
     try {
-        const res = await listGoodsReceipts({
+        const res = await listPutAways({
             search: search.value,
             status: status.value.value || undefined,
             page: page.value,
             per_page: perPage.value,
         });
+
         const paginated = (res as any).data;
-        receipts.value = (paginated?.data ?? []) as GoodsReceiptDto[];
+        putAways.value = (paginated?.data ?? []) as PutAwayDto[];
 
         const meta = paginated?.meta;
         const currentPage = Number(meta?.current_page ?? page.value);
@@ -65,7 +65,7 @@ async function load() {
         totalPages.value = lastPage;
         hasNext.value = currentPage < lastPage;
     } catch (e: any) {
-        error.value = e?.message ?? 'Failed to load goods receipts';
+        error.value = e?.message ?? 'Failed to load put aways';
     } finally {
         loading.value = false;
     }
@@ -95,18 +95,13 @@ function prevPage() {
     load();
 }
 
-const breadcrumbs: BreadcrumbItem[] = [
-    {
-        title: 'Goods Receipts',
-        href: '#',
-    },
-];
+const breadcrumbs: BreadcrumbItem[] = [{ title: 'Put Aways', href: '#' }];
 
 onMounted(load);
 </script>
 
 <template>
-    <Head title="Goods Receipts" />
+    <Head title="Put Aways" />
 
     <AppLayout :breadcrumbs="breadcrumbs">
         <div
@@ -114,14 +109,14 @@ onMounted(load);
         >
             <div class="flex items-center justify-between">
                 <div>
-                    <h1 class="text-xl font-semibold">Goods Receipts</h1>
+                    <h1 class="text-xl font-semibold">Put Aways</h1>
                     <p class="text-sm text-muted-foreground">
-                        Receive goods against Purchase Orders.
+                        Move goods from RECEIVING to STORAGE.
                     </p>
                 </div>
 
                 <Button as-child>
-                    <Link href="/goods-receipts/create">Create</Link>
+                    <Link href="/put-aways/create">Create</Link>
                 </Button>
             </div>
 
@@ -132,7 +127,7 @@ onMounted(load);
                         <Input
                             v-model="search"
                             class="h-10"
-                            placeholder="GR number or PO number"
+                            placeholder="PA number"
                         />
                     </div>
                 </div>
@@ -146,14 +141,6 @@ onMounted(load);
                                 { value: '', label: 'All' },
                                 { value: 'DRAFT', label: 'DRAFT' },
                                 { value: 'POSTED', label: 'POSTED' },
-                                {
-                                    value: 'PUT_AWAY_PARTIAL',
-                                    label: 'PUT_AWAY_PARTIAL',
-                                },
-                                {
-                                    value: 'PUT_AWAY_COMPLETED',
-                                    label: 'PUT_AWAY_COMPLETED',
-                                },
                                 { value: 'CANCELLED', label: 'CANCELLED' },
                             ]"
                             track-by="value"
@@ -191,55 +178,58 @@ onMounted(load);
                 <Table>
                     <TableHeader class="bg-muted/40">
                         <TableRow>
-                            <TableHead>GR No</TableHead>
+                            <TableHead>PA No</TableHead>
                             <TableHead>Status</TableHead>
-                            <TableHead>PO</TableHead>
+                            <TableHead>GR</TableHead>
                             <TableHead>Warehouse</TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>
                         <TableRow
-                            v-for="gr in receipts"
-                            :key="gr.id"
+                            v-for="pa in putAways"
+                            :key="pa.id"
                             class="cursor-pointer hover:bg-muted/30"
-                            @click="router.visit(`/goods-receipts/${gr.id}`)"
+                            @click="router.visit(`/put-aways/${pa.id}`)"
                         >
-                            <TableCell class="font-medium">{{
-                                gr.gr_number
-                            }}</TableCell>
-                            <TableCell
-                                ><StatusBadge :status="gr.status"
-                            /></TableCell>
-                            <TableCell>{{
-                                gr.purchaseOrder?.po_number ??
-                                gr.purchase_order_id
-                            }}</TableCell>
+                            <TableCell class="font-medium">
+                                {{ pa.put_away_number ?? pa.id }}
+                            </TableCell>
+                            <TableCell>
+                                <StatusBadge :status="pa.status" />
+                            </TableCell>
                             <TableCell>
                                 {{
-                                    gr.warehouse
-                                        ? `${gr.warehouse.code} - ${gr.warehouse.name}`
-                                        : gr.warehouse_id
+                                    pa.goodsReceipt?.gr_number ??
+                                    pa.goods_receipt_id
+                                }}
+                            </TableCell>
+                            <TableCell>
+                                {{
+                                    pa.warehouse
+                                        ? `${pa.warehouse.code} - ${pa.warehouse.name}`
+                                        : pa.warehouse_id
                                 }}
                             </TableCell>
                         </TableRow>
 
-                        <TableRow v-if="receipts.length === 0">
+                        <TableRow v-if="putAways.length === 0">
                             <TableCell
                                 colspan="4"
                                 class="py-6 text-center text-muted-foreground"
                             >
-                                No goods receipts.
+                                No put aways.
                             </TableCell>
                         </TableRow>
                     </TableBody>
                 </Table>
             </div>
 
+            <!-- standardized footer pagination -->
             <div class="flex items-center justify-between">
                 <div
                     class="hidden flex-1 text-sm text-muted-foreground lg:flex"
                 >
-                    <!-- spacer / optional status text -->
+                    <!-- spacer -->
                 </div>
 
                 <div class="flex w-full items-center gap-8 lg:w-fit">

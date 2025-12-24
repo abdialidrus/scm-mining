@@ -18,6 +18,7 @@ class StoreWarehouseRequest extends FormRequest
             'name' => ['required', 'string', 'max:255'],
             'address' => ['nullable', 'string'],
             'is_active' => ['sometimes', 'boolean'],
+            'auto_create_storage' => ['sometimes', 'boolean'],
         ];
     }
 }

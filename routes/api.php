@@ -5,11 +5,13 @@ use App\Http\Controllers\Api\GoodsReceiptController;
 use App\Http\Controllers\Api\ItemController;
 use App\Http\Controllers\Api\PurchaseOrderController;
 use App\Http\Controllers\Api\PurchaseRequestController;
+use App\Http\Controllers\Api\PutAwayController;
 use App\Http\Controllers\Api\RoleController;
 use App\Http\Controllers\Api\SupplierController;
 use App\Http\Controllers\Api\UomController;
 use App\Http\Controllers\Api\UserController;
 use App\Http\Controllers\Api\WarehouseController;
+use App\Http\Controllers\Api\WarehouseLocationController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -51,11 +53,22 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::prefix('goods-receipts')->group(function () {
         Route::get('/', [GoodsReceiptController::class, 'index']);
+        Route::get('/eligible-for-put-away', [GoodsReceiptController::class, 'eligibleForPutAway']);
         Route::post('/', [GoodsReceiptController::class, 'store']);
         Route::get('/{goodsReceipt}', [GoodsReceiptController::class, 'show']);
+        Route::get('/{goodsReceipt}/put-away-summary', [GoodsReceiptController::class, 'putAwaySummary']);
 
         Route::post('/{goodsReceipt}/post', [GoodsReceiptController::class, 'post']);
         Route::post('/{goodsReceipt}/cancel', [GoodsReceiptController::class, 'cancel']);
+    });
+
+    Route::prefix('put-aways')->group(function () {
+        Route::get('/', [PutAwayController::class, 'index']);
+        Route::post('/', [PutAwayController::class, 'store']);
+        Route::get('/{putAway}', [PutAwayController::class, 'show']);
+
+        Route::post('/{putAway}/post', [PutAwayController::class, 'post']);
+        Route::post('/{putAway}/cancel', [PutAwayController::class, 'cancel']);
     });
 
     Route::get('/roles', [RoleController::class, 'index']);
@@ -77,4 +90,6 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/warehouses/{warehouse}', [WarehouseController::class, 'show']);
     Route::put('/warehouses/{warehouse}', [WarehouseController::class, 'update']);
     Route::delete('/warehouses/{warehouse}', [WarehouseController::class, 'destroy']);
+
+    Route::get('/warehouse-locations', [WarehouseLocationController::class, 'index']);
 });

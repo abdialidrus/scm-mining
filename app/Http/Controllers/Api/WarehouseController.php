@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\Warehouse\StoreWarehouseRequest;
 use App\Http\Requests\Api\Warehouse\UpdateWarehouseRequest;
 use App\Models\Warehouse;
+use App\Services\WarehouseService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -48,11 +49,11 @@ class WarehouseController extends Controller
         ]);
     }
 
-    public function store(StoreWarehouseRequest $request): JsonResponse
+    public function store(StoreWarehouseRequest $request, WarehouseService $warehouseService): JsonResponse
     {
         $this->authorize('create', Warehouse::class);
 
-        $wh = Warehouse::query()->create($request->validated());
+        $wh = $warehouseService->createWarehouse($request->validated());
 
         return response()->json([
             'data' => $wh,

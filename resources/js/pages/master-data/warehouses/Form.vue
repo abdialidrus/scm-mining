@@ -18,6 +18,7 @@ const form = reactive({
     name: '',
     address: '' as string,
     is_active: true,
+    auto_create_storage: false,
 });
 
 const isEdit = computed(() => props.warehouseId !== null);
@@ -57,6 +58,7 @@ async function save() {
             name: form.name,
             address: form.address || null,
             is_active: form.is_active,
+            auto_create_storage: form.auto_create_storage,
         };
 
         if (isEdit.value) {
@@ -132,6 +134,13 @@ onMounted(load);
                 <div class="flex items-center gap-2">
                     <input type="checkbox" v-model="form.is_active" />
                     <span class="text-sm">Active</span>
+                </div>
+
+                <div v-if="!isEdit" class="flex items-center gap-2">
+                    <input type="checkbox" v-model="form.auto_create_storage" />
+                    <span class="text-sm"
+                        >Auto-create default STORAGE location</span
+                    >
                 </div>
 
                 <div class="flex gap-2">
