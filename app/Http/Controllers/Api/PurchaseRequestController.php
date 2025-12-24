@@ -24,6 +24,13 @@ class PurchaseRequestController extends Controller
         $search = trim((string) $request->query('search', ''));
         $status = trim((string) $request->query('status', ''));
 
+        $perPage = (int) $request->query('per_page', 10);
+        if ($perPage <= 0) {
+            $perPage = 10;
+        }
+        // Guardrail to prevent abuse
+        $perPage = min($perPage, 100);
+
         $query = PurchaseRequest::query()
             ->with(['department', 'requester'])
             ->orderByDesc('id');
@@ -42,7 +49,7 @@ class PurchaseRequestController extends Controller
         }
 
         return response()->json([
-            'data' => $query->paginate(20)->withQueryString(),
+            'data' => $query->paginate($perPage)->withQueryString(),
         ]);
     }
 
