@@ -298,10 +298,7 @@ onMounted(load);
                             :show-edges="true"
                             @update:page="goToPage"
                         >
-                            <PaginationContent
-                                v-slot="{ items }"
-                                class="justify-end"
-                            >
+                            <PaginationContent class="justify-end">
                                 <!-- <PaginationFirst @click="goToPage(1)" />
                                 <PaginationPrevious @click="prevPage" />
 

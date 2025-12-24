@@ -72,11 +72,13 @@ export async function listPurchaseOrders(params?: {
     search?: string;
     status?: string;
     page?: number;
+    per_page?: number;
 }) {
     const qs = new URLSearchParams();
     if (params?.search) qs.set('search', params.search);
     if (params?.status) qs.set('status', params.status);
     if (params?.page) qs.set('page', String(params.page));
+    if (params?.per_page) qs.set('per_page', String(params.per_page));
     const suffix = qs.toString() ? `?${qs.toString()}` : '';
 
     return apiFetch<{ data: Paginated<PurchaseOrderDto> }>(

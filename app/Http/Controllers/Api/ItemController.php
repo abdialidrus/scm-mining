@@ -12,7 +12,9 @@ class ItemController extends Controller
     public function index(Request $request): JsonResponse
     {
         $search = trim((string) $request->query('search', ''));
-        $limit = min(max((int) $request->query('limit', 20), 1), 50);
+
+        $perPage = (int) $request->query('per_page', 10);
+        $perPage = max(1, min($perPage, 100));
 
         $query = DB::table('items')
             ->leftJoin('uoms', 'uoms.id', '=', 'items.base_uom_id')
@@ -33,8 +35,10 @@ class ItemController extends Controller
             });
         }
 
+        $paginator = $query->paginate($perPage)->appends($request->query());
+
         return response()->json([
-            'data' => $query->limit($limit)->get(),
+            'data' => $paginator,
         ]);
     }
 }

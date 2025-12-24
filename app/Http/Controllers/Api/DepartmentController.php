@@ -24,8 +24,13 @@ class DepartmentController extends Controller
             });
         }
 
+        $perPage = (int) $request->query('per_page', 10);
+        $perPage = max(1, min($perPage, 100));
+
+        $paginator = $query->paginate($perPage)->appends($request->query());
+
         return response()->json([
-            'data' => $query->get(['id', 'code', 'name', 'parent_id', 'head_user_id']),
+            'data' => $paginator,
         ]);
     }
 }

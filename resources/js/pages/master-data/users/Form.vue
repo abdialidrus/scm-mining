@@ -101,7 +101,7 @@ const breadcrumbs: BreadcrumbItem[] = [
         href: '/master-data/users',
     },
     {
-        title: isEdit ? 'Edit' : 'Create',
+        title: isEdit.value ? 'Edit' : 'Create',
         href: '#',
     },
 ];

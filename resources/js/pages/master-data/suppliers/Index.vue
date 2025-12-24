@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import Button from '@/components/ui/button/Button.vue';
 import Input from '@/components/ui/input/Input.vue';
+import Pagination from '@/components/ui/pagination/Pagination.vue';
+import PaginationContent from '@/components/ui/pagination/PaginationContent.vue';
 import {
     Table,
     TableBody,
@@ -15,13 +17,22 @@ import { BreadcrumbItem } from '@/types';
 import { Head, Link, router } from '@inertiajs/vue3';
 import { computed, onMounted, ref } from 'vue';
 
+import {
+    ChevronLeft,
+    ChevronRight,
+    ChevronsLeft,
+    ChevronsRight,
+} from 'lucide-vue-next';
+
 const loading = ref(true);
 const error = ref<string | null>(null);
 const suppliers = ref<SupplierDto[]>([]);
 
 const search = ref('');
 const page = ref(1);
+const perPage = ref(10);
 const hasNext = ref(false);
+const totalPages = ref(1);
 const hasPrev = computed(() => page.value > 1);
 
 async function load() {
@@ -32,6 +43,7 @@ async function load() {
         const res = await listSuppliers({
             search: search.value || undefined,
             page: page.value,
+            per_page: perPage.value,
         });
 
         const paginated = (res as any).data;
@@ -41,12 +53,25 @@ async function load() {
         const currentPage = Number(meta?.current_page ?? page.value);
         const lastPage = Number(meta?.last_page ?? currentPage);
         page.value = currentPage;
+        totalPages.value = lastPage;
         hasNext.value = currentPage < lastPage;
     } catch (e: any) {
         error.value = e?.message ?? 'Failed to load suppliers';
     } finally {
         loading.value = false;
     }
+}
+
+function goToPage(p: number) {
+    const next = Math.max(1, Math.min(p, totalPages.value || 1));
+    if (next === page.value) return;
+    page.value = next;
+    load();
+}
+
+function onChangePerPage() {
+    page.value = 1;
+    load();
 }
 
 function nextPage() {
@@ -108,9 +133,13 @@ onMounted(load);
                             variant="outline"
                             type="button"
                             class="h-10 w-full"
-                            @click="load"
-                            >Search</Button
+                            @click="
+                                page = 1;
+                                load();
+                            "
                         >
+                            Search
+                        </Button>
                     </div>
                 </div>
             </div>
@@ -184,22 +213,94 @@ onMounted(load);
                 </Table>
             </div>
 
-            <div class="mt-4 flex items-center justify-between">
-                <Button
-                    variant="outline"
-                    type="button"
-                    :disabled="!hasPrev"
-                    @click="prevPage"
-                    >Previous</Button
+            <div class="flex items-center justify-between">
+                <div
+                    class="hidden flex-1 text-sm text-muted-foreground lg:flex"
                 >
-                <div class="text-sm text-muted-foreground">Page {{ page }}</div>
-                <Button
-                    variant="outline"
-                    type="button"
-                    :disabled="!hasNext"
-                    @click="nextPage"
-                    >Next</Button
-                >
+                    <!-- spacer / optional status text -->
+                </div>
+
+                <div class="flex w-full items-center gap-8 lg:w-fit">
+                    <div class="hidden items-center gap-2 lg:flex">
+                        <label for="rows-per-page" class="text-sm font-medium">
+                            Rows per page
+                        </label>
+                        <select
+                            id="rows-per-page"
+                            v-model.number="perPage"
+                            class="h-8 w-20 rounded-md border bg-background px-2 text-sm"
+                            @change="onChangePerPage"
+                        >
+                            <option :value="10">10</option>
+                            <option :value="20">20</option>
+                            <option :value="50">50</option>
+                            <option :value="100">100</option>
+                        </select>
+                    </div>
+
+                    <div
+                        class="flex w-fit items-center justify-center text-sm font-medium"
+                    >
+                        Page {{ page }} of {{ totalPages }}
+                    </div>
+
+                    <div class="ml-auto flex items-center gap-2 lg:ml-0">
+                        <Pagination
+                            :page="page"
+                            :items-per-page="perPage"
+                            :total="totalPages * perPage"
+                            :sibling-count="1"
+                            :show-edges="true"
+                            @update:page="goToPage"
+                        >
+                            <PaginationContent class="justify-end">
+                                <Button
+                                    variant="outline"
+                                    class="hidden h-8 w-8 p-0 lg:flex"
+                                    :disabled="page === 1"
+                                    @click="goToPage(1)"
+                                >
+                                    <span class="sr-only"
+                                        >Go to first page</span
+                                    >
+                                    <ChevronsLeft />
+                                </Button>
+                                <Button
+                                    variant="outline"
+                                    class="size-8"
+                                    size="icon"
+                                    :disabled="page === 1"
+                                    @click="prevPage"
+                                >
+                                    <span class="sr-only"
+                                        >Go to previous page</span
+                                    >
+                                    <ChevronLeft />
+                                </Button>
+                                <Button
+                                    variant="outline"
+                                    class="size-8"
+                                    size="icon"
+                                    :disabled="page === totalPages"
+                                    @click="nextPage"
+                                >
+                                    <span class="sr-only">Go to next page</span>
+                                    <ChevronRight />
+                                </Button>
+                                <Button
+                                    variant="outline"
+                                    class="hidden size-8 lg:flex"
+                                    size="icon"
+                                    :disabled="page === totalPages"
+                                    @click="goToPage(totalPages)"
+                                >
+                                    <span class="sr-only">Go to last page</span>
+                                    <ChevronsRight />
+                                </Button>
+                            </PaginationContent>
+                        </Pagination>
+                    </div>
+                </div>
             </div>
         </div>
     </AppLayout>

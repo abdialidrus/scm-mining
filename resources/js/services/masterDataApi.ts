@@ -32,31 +32,94 @@ export type WarehouseDto = {
     is_active: boolean;
 };
 
-export async function fetchItems(params?: { search?: string; limit?: number }) {
+export type Paginated<T> = {
+    data: T[];
+    links: unknown;
+    meta: unknown;
+};
+
+export async function listItems(params?: {
+    search?: string;
+    page?: number;
+    per_page?: number;
+}) {
     const qs = new URLSearchParams();
     if (params?.search) qs.set('search', params.search);
-    if (params?.limit) qs.set('limit', String(params.limit));
+    if (params?.page) qs.set('page', String(params.page));
+    if (params?.per_page) qs.set('per_page', String(params.per_page));
     const suffix = qs.toString() ? `?${qs.toString()}` : '';
 
-    return apiFetch<{ data: ItemDto[] }>(`/api/items${suffix}`);
+    return apiFetch<{ data: Paginated<ItemDto> }>(`/api/items${suffix}`);
+}
+
+export async function listUoms(params?: { page?: number; per_page?: number }) {
+    const qs = new URLSearchParams();
+    if (params?.page) qs.set('page', String(params.page));
+    if (params?.per_page) qs.set('per_page', String(params.per_page));
+    const suffix = qs.toString() ? `?${qs.toString()}` : '';
+
+    return apiFetch<{ data: Paginated<UomDto> }>(`/api/uoms${suffix}`);
+}
+
+export async function listDepartments(params?: {
+    search?: string;
+    page?: number;
+    per_page?: number;
+}) {
+    const qs = new URLSearchParams();
+    if (params?.search) qs.set('search', params.search);
+    if (params?.page) qs.set('page', String(params.page));
+    if (params?.per_page) qs.set('per_page', String(params.per_page));
+    const suffix = qs.toString() ? `?${qs.toString()}` : '';
+
+    return apiFetch<{ data: Paginated<DepartmentDto> }>(
+        `/api/departments${suffix}`,
+    );
+}
+
+export async function listWarehouses(params?: {
+    search?: string;
+    page?: number;
+    per_page?: number;
+}) {
+    const qs = new URLSearchParams();
+    if (params?.search) qs.set('search', params.search);
+    if (params?.page) qs.set('page', String(params.page));
+    if (params?.per_page) qs.set('per_page', String(params.per_page));
+    const suffix = qs.toString() ? `?${qs.toString()}` : '';
+
+    return apiFetch<{ data: Paginated<WarehouseDto> }>(
+        `/api/warehouses${suffix}`,
+    );
+}
+
+// Backward compatible helpers (some pages may still call these)
+export async function fetchItems(params?: { search?: string; limit?: number }) {
+    // When backend moved to pagination, limit is mapped to per_page.
+    return listItems({
+        search: params?.search,
+        per_page: params?.limit ?? 20,
+    }).then((res) => ({ data: (res as any).data?.data ?? [] }));
 }
 
 export async function fetchUoms() {
-    return apiFetch<{ data: UomDto[] }>(`/api/uoms`);
+    return listUoms({ per_page: 100 }).then((res) => ({
+        data: (res as any).data?.data ?? [],
+    }));
 }
 
 export async function fetchDepartments(params?: { search?: string }) {
-    const qs = new URLSearchParams();
-    if (params?.search) qs.set('search', params.search);
-    const suffix = qs.toString() ? `?${qs.toString()}` : '';
-
-    return apiFetch<{ data: DepartmentDto[] }>(`/api/departments${suffix}`);
+    return listDepartments({ search: params?.search, per_page: 100 }).then(
+        (res) => ({
+            data: (res as any).data?.data ?? [],
+        }),
+    );
 }
 
 export async function fetchWarehouses(params?: { search?: string }) {
-    const qs = new URLSearchParams();
-    if (params?.search) qs.set('search', params.search);
-    const suffix = qs.toString() ? `?${qs.toString()}` : '';
-
-    return apiFetch<{ data: WarehouseDto[] }>(`/api/warehouses${suffix}`);
+    return listWarehouses({ search: params?.search, per_page: 100 }).then(
+        (res) => ({
+            data: (res as any).data?.data ?? [],
+        }),
+    );
 }

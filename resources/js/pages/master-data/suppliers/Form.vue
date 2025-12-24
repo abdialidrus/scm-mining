@@ -89,7 +89,7 @@ const breadcrumbs: BreadcrumbItem[] = [
         href: '/master-data/suppliers',
     },
     {
-        title: isEdit ? 'Edit' : 'Create',
+        title: isEdit.value ? 'Edit' : 'Create',
         href: '#',
     },
 ];

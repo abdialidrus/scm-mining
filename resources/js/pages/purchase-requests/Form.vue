@@ -38,7 +38,6 @@ const error = ref<string | null>(null);
 
 const uoms = ref<UomDto[]>([]);
 const items = ref<ItemDto[]>([]);
-const itemSearch = ref('');
 
 // Remote-per-line search state (for multiselect)
 const lineItemSearch = ref<Record<number, string>>({});
