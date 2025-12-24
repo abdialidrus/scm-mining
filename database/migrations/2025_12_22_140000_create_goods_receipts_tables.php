@@ -8,13 +8,6 @@ return new class extends Migration
 {
     public function up(): void
     {
-        // Migration ordering guard:
-        // goods_receipts depends on purchase_orders and purchase_order_lines.
-        // In case this migration runs earlier (filename prefix), skip and let it run after dependency migrations.
-        if (!Schema::hasTable('purchase_orders') || !Schema::hasTable('purchase_order_lines')) {
-            return;
-        }
-
         if (!Schema::hasTable('goods_receipts')) {
             Schema::create('goods_receipts', function (Blueprint $table) {
                 $table->id();
