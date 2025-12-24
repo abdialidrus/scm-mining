@@ -152,7 +152,7 @@ onMounted(load);
             </div>
 
             <div class="mt-6 grid items-end gap-3 md:grid-cols-12">
-                <div class="md:col-span-5">
+                <div class="md:col-span-6">
                     <label class="text-sm font-medium">Search</label>
                     <div class="mt-1 flex h-10 items-center">
                         <Input
@@ -182,9 +182,6 @@ onMounted(load);
                             class="w-full"
                         />
                     </div>
-                </div>
-                <div class="md:col-span-1">
-                    <!-- Rows moved to table footer (see below) -->
                 </div>
                 <div class="md:col-span-2">
                     <label class="text-sm font-medium opacity-0">Apply</label>
