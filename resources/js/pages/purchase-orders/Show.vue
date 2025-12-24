@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import StatusBadge from '@/components/StatusBadge.vue';
 import Button from '@/components/ui/button/Button.vue';
 import {
     Table,
@@ -21,6 +22,7 @@ import {
     updatePurchaseOrderDraft,
     type PurchaseOrderDto,
 } from '@/services/purchaseOrderApi';
+import { BreadcrumbItem } from '@/types';
 import { Head, Link } from '@inertiajs/vue3';
 import { computed, onMounted, ref } from 'vue';
 
@@ -189,24 +191,37 @@ const displayTotal = computed(
     () => po.value?.total_amount ?? computedTotal.value,
 );
 
+const breadcrumbs: BreadcrumbItem[] = [
+    {
+        title: 'Purchase Orders',
+        href: '/purchase-orders',
+    },
+    {
+        title: 'Details',
+        href: '#',
+    },
+];
+
 onMounted(load);
 </script>
 
 <template>
     <Head :title="title" />
 
-    <AppLayout>
+    <AppLayout :breadcrumbs="breadcrumbs">
         <div
             class="flex h-full flex-1 flex-col gap-4 overflow-x-auto rounded-xl p-4"
         >
             <div class="flex items-center justify-between">
                 <div>
-                    <h1 class="text-xl font-semibold">
-                        {{ po?.po_number ?? 'PO' }}
-                    </h1>
+                    <div class="flex items-center gap-2">
+                        <h1 class="text-xl font-semibold">
+                            {{ po?.po_number ?? 'PO' }}
+                        </h1>
+                        <StatusBadge :status="po?.status ?? ''" />
+                    </div>
                     <p class="text-sm text-muted-foreground">
                         {{ po?.supplier?.name ?? po?.supplier_id }}
-                        {{ po?.status ?? '' }}
                     </p>
                 </div>
                 <div class="flex gap-2">
@@ -528,6 +543,44 @@ onMounted(load);
 
                 <div class="rounded-lg border">
                     <div class="border-b p-4">
+                        <h2 class="text-sm font-semibold">Linked PRs</h2>
+                    </div>
+                    <div class="p-4">
+                        <div
+                            v-if="(po.purchase_requests ?? []).length === 0"
+                            class="text-sm text-muted-foreground"
+                        >
+                            No linked PRs.
+                        </div>
+
+                        <ul v-else class="space-y-2">
+                            <li
+                                v-for="pr in po.purchase_requests ?? []"
+                                :key="pr.id"
+                                class="flex items-center justify-between gap-3 rounded-md border bg-muted/10 px-3 py-2"
+                            >
+                                <div class="min-w-0">
+                                    <Link
+                                        :href="`/purchase-requests/${pr.id}`"
+                                        class="truncate text-sm font-medium hover:underline"
+                                    >
+                                        {{ pr.pr_number }}
+                                    </Link>
+                                    <div class="text-xs text-muted-foreground">
+                                        PR ID: {{ pr.id }}
+                                    </div>
+                                </div>
+
+                                <div class="shrink-0">
+                                    <StatusBadge :status="pr.status" />
+                                </div>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="rounded-lg border">
+                    <div class="border-b p-4">
                         <h2 class="text-sm font-semibold">Status History</h2>
                     </div>
                     <div class="p-4">
@@ -577,22 +630,6 @@ onMounted(load);
                                 </TableBody>
                             </Table>
                         </div>
-                    </div>
-                </div>
-
-                <div class="rounded-lg border">
-                    <div class="border-b p-4">
-                        <h2 class="text-sm font-semibold">Linked PRs</h2>
-                    </div>
-                    <div class="p-4 text-sm">
-                        <ul class="list-inside list-disc">
-                            <li
-                                v-for="pr in po.purchase_requests ?? []"
-                                :key="pr.id"
-                            >
-                                {{ pr.pr_number }} ({{ pr.status }})
-                            </li>
-                        </ul>
                     </div>
                 </div>
             </div>

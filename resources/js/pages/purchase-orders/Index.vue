@@ -16,6 +16,7 @@ import {
     listPurchaseOrders,
     type PurchaseOrderDto,
 } from '@/services/purchaseOrderApi';
+import { BreadcrumbItem } from '@/types';
 import { Head, Link, router } from '@inertiajs/vue3';
 import { computed, onMounted, ref } from 'vue';
 import Multiselect from 'vue-multiselect';
@@ -77,13 +78,20 @@ function prevPage() {
     load();
 }
 
+const breadcrumbs: BreadcrumbItem[] = [
+    {
+        title: 'Purchase Orders',
+        href: '/purchase-orders',
+    },
+];
+
 onMounted(load);
 </script>
 
 <template>
     <Head title="Purchase Orders" />
 
-    <AppLayout>
+    <AppLayout :breadcrumbs="breadcrumbs">
         <div
             class="flex h-full flex-1 flex-col gap-4 overflow-x-auto rounded-xl p-4"
         >
