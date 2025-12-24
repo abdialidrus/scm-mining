@@ -82,7 +82,14 @@ function debounceSearchItemsRemote(idx: number, q: string) {
         lineItemLoading.value[idx] = true;
         try {
             const res = await fetchItems({ search: query, limit: 50 });
-            items.value = res.data;
+
+            // Items API may return either { data: ItemDto[] } or { data: { data: ItemDto[] } } (paginated).
+            const raw: any = (res as any)?.data;
+            items.value = Array.isArray(raw)
+                ? (raw as ItemDto[])
+                : Array.isArray(raw?.data)
+                  ? (raw.data as ItemDto[])
+                  : [];
         } catch {
             // ignore
         } finally {
@@ -137,7 +144,15 @@ async function loadMasters() {
         fetchDepartments(),
     ]);
     uoms.value = u.data;
-    items.value = it.data;
+
+    // Items API may return either { data: ItemDto[] } or { data: { data: ItemDto[] } } (paginated).
+    const rawItems: any = (it as any)?.data;
+    items.value = Array.isArray(rawItems)
+        ? (rawItems as ItemDto[])
+        : Array.isArray(rawItems?.data)
+          ? (rawItems.data as ItemDto[])
+          : [];
+
     departments.value = d.data;
 }
 
