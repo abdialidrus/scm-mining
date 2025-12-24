@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import StatusHistoryTable from '@/components/StatusHistoryTable.vue';
 import Button from '@/components/ui/button/Button.vue';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { formatQty } from '@/lib/format';
@@ -68,6 +69,19 @@ async function cancel() {
     } finally {
         acting.value = false;
     }
+}
+
+function formatDateTime(value?: string | null) {
+    if (!value) return '-';
+    const d = new Date(value);
+    if (Number.isNaN(d.getTime())) return value;
+    return new Intl.DateTimeFormat('id-ID', {
+        year: 'numeric',
+        month: 'short',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+    }).format(d);
 }
 
 const breadcrumbs: BreadcrumbItem[] = [
@@ -205,21 +219,12 @@ onMounted(load);
 
                 <div class="rounded-lg border p-4">
                     <h2 class="text-sm font-semibold">History</h2>
-                    <div class="mt-3 space-y-2 text-sm">
-                        <div
-                            v-for="h in gr.status_histories ?? []"
-                            :key="h.id"
-                            class="flex justify-between"
-                        >
-                            <div>
-                                {{ h.action }}: {{ h.from_status ?? '-' }} →
-                                {{ h.to_status }}
-                                <span v-if="h.actor">({{ h.actor.name }})</span>
-                            </div>
-                            <div class="text-xs text-muted-foreground">
-                                {{ h.created_at }}
-                            </div>
-                        </div>
+                    <div class="mt-3">
+                        <StatusHistoryTable
+                            :rows="gr.status_histories ?? []"
+                            :format-date-time="formatDateTime"
+                            empty-text="No history."
+                        />
                     </div>
                 </div>
             </div>

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import StatusHistoryTable from '@/components/StatusHistoryTable.vue';
 import Button from '@/components/ui/button/Button.vue';
 import {
     Dialog,
@@ -308,65 +309,21 @@ onMounted(load);
                         <h2 class="text-sm font-semibold">Audit History</h2>
                     </div>
                     <div class="p-4">
-                        <div class="overflow-hidden rounded-lg border">
-                            <Table>
-                                <TableHeader class="bg-muted/40">
-                                    <TableRow>
-                                        <TableHead>At</TableHead>
-                                        <TableHead>Action</TableHead>
-                                        <TableHead>From</TableHead>
-                                        <TableHead>To</TableHead>
-                                        <TableHead>Actor</TableHead>
-                                        <TableHead>Note</TableHead>
-                                    </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                    <TableRow
-                                        v-for="h in pr.status_histories ?? []"
-                                        :key="h.id"
-                                    >
-                                        <TableCell>{{
-                                            formatDateTime(h.created_at)
-                                        }}</TableCell>
-                                        <TableCell class="font-medium">{{
-                                            h.action
-                                        }}</TableCell>
-                                        <TableCell>{{
-                                            h.from_status ?? '-'
-                                        }}</TableCell>
-                                        <TableCell>{{ h.to_status }}</TableCell>
-                                        <TableCell>{{
-                                            h.actor?.name ??
-                                            h.actor_user_id ??
-                                            '-'
-                                        }}</TableCell>
-                                        <TableCell>
-                                            <span v-if="h.action === 'reject'">
-                                                {{ h.meta?.reason ?? '-' }}
-                                            </span>
-                                            <span
-                                                v-else
-                                                class="text-muted-foreground"
-                                                >-</span
-                                            >
-                                        </TableCell>
-                                    </TableRow>
+                        <StatusHistoryTable
+                            :rows="pr.status_histories ?? []"
+                            :format-date-time="formatDateTime"
+                            :show-note="true"
+                            :get-note="
+                                (row) =>
+                                    row.action === 'reject'
+                                        ? ((row as any)?.meta?.reason ?? null)
+                                        : null
+                            "
+                        />
 
-                                    <TableRow
-                                        v-if="
-                                            (pr.status_histories ?? [])
-                                                .length === 0
-                                        "
-                                    >
-                                        <TableCell
-                                            colspan="6"
-                                            class="py-6 text-center text-muted-foreground"
-                                        >
-                                            No history.
-                                        </TableCell>
-                                    </TableRow>
-                                </TableBody>
-                            </Table>
+                        <div class="mt-3 text-xs text-muted-foreground">
+                            Note: reject reason is currently not displayed in
+                            this table.
                         </div>
                     </div>
                 </div>
