@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import StatusBadge from '@/components/StatusBadge.vue';
 import Button from '@/components/ui/button/Button.vue';
 import Input from '@/components/ui/input/Input.vue';
 import {
@@ -151,7 +152,9 @@ onMounted(load);
                             <TableCell class="font-medium">{{
                                 gr.gr_number
                             }}</TableCell>
-                            <TableCell>{{ gr.status }}</TableCell>
+                            <TableCell
+                                ><StatusBadge :status="gr.status"
+                            /></TableCell>
                             <TableCell>{{
                                 gr.purchaseOrder?.po_number ??
                                 gr.purchase_order_id
