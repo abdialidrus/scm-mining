@@ -2,6 +2,7 @@
 import Button from '@/components/ui/button/Button.vue';
 import Input from '@/components/ui/input/Input.vue';
 import AppLayout from '@/layouts/AppLayout.vue';
+import { formatQty } from '@/lib/format';
 import { createGoodsReceipt } from '@/services/goodsReceiptApi';
 import { apiFetch } from '@/services/http';
 import { fetchWarehouses, type WarehouseDto } from '@/services/masterDataApi';
@@ -91,7 +92,7 @@ async function loadPo(poId: number) {
 async function loadPOs() {
     const res = await listPurchaseOrders({
         search: undefined,
-        status: 'APPROVED',
+        status: 'SENT',
         page: 1,
     });
     const paginated = (res as any).data;
@@ -291,11 +292,13 @@ onMounted(load);
                                 <div class="text-xs text-muted-foreground">
                                     Ordered:
                                     {{
-                                        (po.lines ?? []).find(
-                                            (x) =>
-                                                x.id ===
-                                                l.purchase_order_line_id,
-                                        )?.quantity ?? 0
+                                        formatQty(
+                                            (po.lines ?? []).find(
+                                                (x) =>
+                                                    x.id ===
+                                                    l.purchase_order_line_id,
+                                            )?.quantity,
+                                        ) ?? 0
                                     }}
                                     {{
                                         (po.lines ?? []).find(

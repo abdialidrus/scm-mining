@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import Button from '@/components/ui/button/Button.vue';
 import AppLayout from '@/layouts/AppLayout.vue';
+import { formatQty } from '@/lib/format';
 import {
     cancelGoodsReceipt,
     getGoodsReceipt,
@@ -178,9 +179,10 @@ onMounted(load);
                                     {{ l.item?.name ?? '' }}
                                 </div>
                                 <div class="text-xs text-muted-foreground">
-                                    Ordered: {{ l.ordered_quantity }} —
+                                    Ordered:
+                                    {{ formatQty(l.ordered_quantity) }} —
                                     Received:
-                                    {{ l.received_quantity }}
+                                    {{ formatQty(l.received_quantity) }}
                                     {{ l.uom?.code ?? '' }}
                                 </div>
                                 <div
