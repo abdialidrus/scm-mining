@@ -339,6 +339,7 @@ onMounted(load);
                                     variant="outline"
                                     class="size-8"
                                     size="icon"
+                                    :disabled="page === 1"
                                     @click="prevPage"
                                 >
                                     <span class="sr-only"
@@ -350,6 +351,7 @@ onMounted(load);
                                     variant="outline"
                                     class="size-8"
                                     size="icon"
+                                    :disabled="page === totalPages"
                                     @click="nextPage"
                                 >
                                     <span class="sr-only">Go to next page</span>
