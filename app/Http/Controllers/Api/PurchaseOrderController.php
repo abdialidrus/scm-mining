@@ -66,7 +66,7 @@ class PurchaseOrderController extends Controller
                 'submittedBy',
                 'approvedBy',
                 'approvals.step',
-                'approvals.assignedToUser',
+                'approvals.approver',
                 'approvals.approvedBy',
                 'approvals.rejectedBy',
             ]),

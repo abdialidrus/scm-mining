@@ -520,6 +520,136 @@ onMounted(load);
                     </div>
                 </div>
 
+                <!-- Approvals Section -->
+                <div
+                    v-if="po.approvals && po.approvals.length > 0"
+                    class="rounded-lg border"
+                >
+                    <div class="border-b p-4">
+                        <h2 class="text-sm font-semibold">Approval Workflow</h2>
+                    </div>
+                    <div class="p-4">
+                        <div class="space-y-4">
+                            <div
+                                v-for="(approval, idx) in po.approvals"
+                                :key="approval.id"
+                                class="flex items-start gap-4 border-b pb-4 last:border-b-0 last:pb-0"
+                            >
+                                <div class="shrink-0">
+                                    <div
+                                        class="flex h-8 w-8 items-center justify-center rounded-full text-sm font-medium"
+                                        :class="{
+                                            'bg-green-100 text-green-800':
+                                                approval.status === 'APPROVED',
+                                            'bg-red-100 text-red-800':
+                                                approval.status === 'REJECTED',
+                                            'bg-yellow-100 text-yellow-800':
+                                                approval.status === 'PENDING',
+                                            'bg-gray-100 text-gray-800':
+                                                approval.status === 'CANCELLED',
+                                        }"
+                                    >
+                                        {{ idx + 1 }}
+                                    </div>
+                                </div>
+                                <div class="flex-1">
+                                    <div
+                                        class="flex items-center justify-between"
+                                    >
+                                        <div>
+                                            <div class="text-sm font-medium">
+                                                {{
+                                                    approval.step?.name ??
+                                                    'Approval'
+                                                }}
+                                            </div>
+                                            <div
+                                                class="text-xs text-muted-foreground"
+                                            >
+                                                <template
+                                                    v-if="
+                                                        approval.assigned_to_user_id &&
+                                                        approval.approver
+                                                    "
+                                                >
+                                                    {{ approval.approver.name }}
+                                                </template>
+                                                <template
+                                                    v-else-if="
+                                                        approval.assigned_to_role
+                                                    "
+                                                >
+                                                    Role:
+                                                    {{
+                                                        approval.assigned_to_role
+                                                    }}
+                                                </template>
+                                                <template v-else>
+                                                    Unassigned
+                                                </template>
+                                            </div>
+                                        </div>
+                                        <StatusBadge
+                                            :status="approval.status"
+                                        />
+                                    </div>
+                                    <div
+                                        v-if="
+                                            approval.status === 'APPROVED' &&
+                                            approval.approved_by
+                                        "
+                                        class="mt-2 text-xs text-muted-foreground"
+                                    >
+                                        <div>
+                                            Approved by:
+                                            {{ approval.approved_by.name }}
+                                        </div>
+                                        <div v-if="approval.approved_at">
+                                            {{
+                                                formatDateTime(
+                                                    approval.approved_at,
+                                                )
+                                            }}
+                                        </div>
+                                        <div
+                                            v-if="approval.comments"
+                                            class="mt-1 text-sm"
+                                        >
+                                            Comments: {{ approval.comments }}
+                                        </div>
+                                    </div>
+                                    <div
+                                        v-if="
+                                            approval.status === 'REJECTED' &&
+                                            approval.rejected_by
+                                        "
+                                        class="mt-2 text-xs text-muted-foreground"
+                                    >
+                                        <div>
+                                            Rejected by:
+                                            {{ approval.rejected_by.name }}
+                                        </div>
+                                        <div v-if="approval.rejected_at">
+                                            {{
+                                                formatDateTime(
+                                                    approval.rejected_at,
+                                                )
+                                            }}
+                                        </div>
+                                        <div
+                                            v-if="approval.rejection_reason"
+                                            class="mt-1 text-sm text-red-600"
+                                        >
+                                            Reason:
+                                            {{ approval.rejection_reason }}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 <div class="rounded-lg border">
                     <div class="border-b p-4">
                         <h2 class="text-sm font-semibold">Status History</h2>

@@ -1,5 +1,27 @@
 import { apiFetch } from '@/services/http';
 
+export type ApprovalDto = {
+    id: number;
+    status: string;
+    assigned_to_user_id: number | null;
+    assigned_to_role: string | null;
+    approved_by_user_id: number | null;
+    rejected_by_user_id: number | null;
+    approved_at: string | null;
+    rejected_at: string | null;
+    comments: string | null;
+    rejection_reason: string | null;
+    step?: {
+        id: number;
+        name: string;
+        sequence: number;
+        approver_type: string;
+    } | null;
+    approver?: { id: number; name: string; email: string } | null;
+    approved_by?: { id: number; name: string; email: string } | null;
+    rejected_by?: { id: number; name: string; email: string } | null;
+};
+
 export type PurchaseOrderLineDto = {
     id: number;
     line_no: number;
@@ -60,6 +82,7 @@ export type PurchaseOrderDto = {
 
     lines: PurchaseOrderLineDto[];
     status_histories?: PurchaseOrderStatusHistoryDto[];
+    approvals?: ApprovalDto[];
 };
 
 export type Paginated<T> = {

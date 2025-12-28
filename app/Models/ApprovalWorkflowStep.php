@@ -33,7 +33,7 @@ class ApprovalWorkflowStep extends Model
         'meta',
     ];
 
-    protected $appends = ['approver_role', 'approver_user_id', 'is_final_step'];
+    protected $appends = ['approver_role', 'approver_user_id', 'is_final_step', 'name', 'sequence'];
 
     protected function casts(): array
     {
@@ -44,6 +44,22 @@ class ApprovalWorkflowStep extends Model
             'allow_parallel' => 'boolean',
             'meta' => 'array',
         ];
+    }
+
+    /**
+     * Get name attribute (alias for step_name for backward compatibility).
+     */
+    public function getNameAttribute(): ?string
+    {
+        return $this->attributes['step_name'] ?? null;
+    }
+
+    /**
+     * Get sequence attribute (alias for step_order for backward compatibility).
+     */
+    public function getSequenceAttribute(): ?int
+    {
+        return $this->attributes['step_order'] ?? null;
     }
 
     /**
