@@ -21,6 +21,7 @@ class DatabaseSeeder extends Seeder
         $this->call(DepartmentSeeder::class);
         $this->call(ItemSeeder::class);
         $this->call(SupplierSeeder::class);
+        $this->call(ApprovalWorkflowSeeder::class);
 
         $user = User::query()->updateOrCreate(
             ['email' => 'superadmin@gmail.com'],

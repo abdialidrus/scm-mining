@@ -13,6 +13,7 @@ class PurchaseOrder extends Model
     public const STATUS_SUBMITTED = 'SUBMITTED';
     public const STATUS_IN_APPROVAL = 'IN_APPROVAL';
     public const STATUS_APPROVED = 'APPROVED';
+    public const STATUS_REJECTED = 'REJECTED';
     public const STATUS_SENT = 'SENT';
     public const STATUS_CLOSED = 'CLOSED';
     public const STATUS_CANCELLED = 'CANCELLED';
@@ -83,6 +84,11 @@ class PurchaseOrder extends Model
     public function statusHistories()
     {
         return $this->hasMany(PurchaseOrderStatusHistory::class);
+    }
+
+    public function approvals()
+    {
+        return $this->morphMany(Approval::class, 'approvable');
     }
 
     public function purchaseRequests()

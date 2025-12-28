@@ -4,9 +4,14 @@ namespace App\Policies;
 
 use App\Models\PurchaseOrder;
 use App\Models\User;
+use App\Services\Approval\ApprovalWorkflowService;
 
 class PurchaseOrderPolicy
 {
+    public function __construct(
+        private readonly ApprovalWorkflowService $approvalWorkflowService,
+    ) {}
+
     public function viewAny(User $user): bool
     {
         // minimal for now
@@ -31,12 +36,25 @@ class PurchaseOrderPolicy
 
     public function approve(User $user, PurchaseOrder $purchaseOrder): bool
     {
-        // Enforced in service per-step; policy only checks role and state.
+        // Check basic state
         if (!in_array($purchaseOrder->status, [PurchaseOrder::STATUS_SUBMITTED, PurchaseOrder::STATUS_IN_APPROVAL], true)) {
             return false;
         }
 
-        return $user->hasAnyRole(['super_admin', 'finance', 'gm', 'director']);
+        // ✨ NEW: Check via approval workflow service
+        $nextApproval = $this->approvalWorkflowService->getNextPendingApproval($purchaseOrder);
+
+        if (!$nextApproval) {
+            return false; // No pending approval
+        }
+
+        return $this->approvalWorkflowService->canApprove($user, $nextApproval);
+    }
+
+    public function reject(User $user, PurchaseOrder $purchaseOrder): bool
+    {
+        // Same logic as approve - user can reject if they can approve
+        return $this->approve($user, $purchaseOrder);
     }
 
     public function send(User $user, PurchaseOrder $purchaseOrder): bool

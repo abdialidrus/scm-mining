@@ -10,6 +10,7 @@ use App\Models\PurchaseRequest;
 use App\Models\Supplier;
 use App\Models\Uom;
 use App\Models\User;
+use App\Services\Approval\ApprovalWorkflowService;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\DB;
@@ -19,6 +20,7 @@ class PurchaseOrderService
 {
     public function __construct(
         private readonly PurchaseOrderNumberGenerator $numberGenerator,
+        private readonly ApprovalWorkflowService $approvalWorkflowService,
     ) {}
 
     /**
@@ -181,6 +183,9 @@ class PurchaseOrderService
             // Freeze totals snapshot at submit (approval/export/report should use these values)
             $this->recalculateAndPersistTotals($po->refresh(), 'submitted');
 
+            // ✨ NEW: Initialize approval workflow
+            $this->approvalWorkflowService->initiate($po, 'PO_STANDARD');
+
             $this->recordStatusHistory($po, $from, $po->status, 'submit', $actor);
 
             return $this->loadForShow($po);
@@ -188,10 +193,12 @@ class PurchaseOrderService
     }
 
     /**
-     * Approve flow:
-     * - finance approves SUBMITTED -> IN_APPROVAL
-     * - gm approves IN_APPROVAL -> IN_APPROVAL (records step)
-     * - director approves IN_APPROVAL -> APPROVED (final)
+     * Approve PO using approval workflow.
+     *
+     * The approval logic is now data-driven via ApprovalWorkflowService.
+     * PO status transitions:
+     * - SUBMITTED + first approval -> IN_APPROVAL
+     * - IN_APPROVAL + final approval -> APPROVED
      */
     public function approve(User $actor, int $purchaseOrderId): PurchaseOrder
     {
@@ -205,62 +212,84 @@ class PurchaseOrderService
                 ]);
             }
 
-            $step = $this->nextApprovalStep($po);
+            // ✨ NEW: Get next pending approval from workflow
+            $nextApproval = $this->approvalWorkflowService->getNextPendingApproval($po);
 
-            if ($step === 'finance') {
-                if (!$actor->hasAnyRole(['finance', 'super_admin'])) {
-                    throw new AuthorizationException('Only finance can approve this step.');
-                }
-                if ($po->status !== PurchaseOrder::STATUS_SUBMITTED) {
-                    throw ValidationException::withMessages([
-                        'status' => 'Finance step requires SUBMITTED PO.',
-                    ]);
-                }
-
-                $from = $po->status;
-                $po->status = PurchaseOrder::STATUS_IN_APPROVAL;
-                $po->save();
-
-                $this->recordStatusHistory($po, $from, $po->status, 'approve', $actor, ['step' => 'finance']);
-
-                return $this->loadForShow($po);
-            }
-
-            if ($step === 'gm') {
-                if (!$actor->hasAnyRole(['gm', 'super_admin'])) {
-                    throw new AuthorizationException('Only GM can approve this step.');
-                }
-
-                // Keep status IN_APPROVAL, just record step
-                if ($po->status !== PurchaseOrder::STATUS_IN_APPROVAL) {
-                    throw ValidationException::withMessages([
-                        'status' => 'GM step requires IN_APPROVAL PO.',
-                    ]);
-                }
-
-                $this->recordStatusHistory($po, $po->status, $po->status, 'approve', $actor, ['step' => 'gm']);
-
-                return $this->loadForShow($po);
-            }
-
-            // director
-            if (!$actor->hasAnyRole(['director', 'super_admin'])) {
-                throw new AuthorizationException('Only Director can approve this step.');
-            }
-
-            if ($po->status !== PurchaseOrder::STATUS_IN_APPROVAL) {
+            if (!$nextApproval) {
                 throw ValidationException::withMessages([
-                    'status' => 'Director step requires IN_APPROVAL PO.',
+                    'approval' => 'No pending approval found for this PO.',
                 ]);
             }
 
+            // ✨ NEW: Approve via workflow service (handles authorization)
+            $this->approvalWorkflowService->approve($actor, $nextApproval);
+
+            // Update PO status based on workflow completion
             $from = $po->status;
-            $po->status = PurchaseOrder::STATUS_APPROVED;
-            $po->approved_at = now();
-            $po->approved_by_user_id = $actor->id;
+
+            if ($this->approvalWorkflowService->isWorkflowComplete($po)) {
+                // All approvals done -> APPROVED
+                $po->status = PurchaseOrder::STATUS_APPROVED;
+                $po->approved_at = now();
+                $po->approved_by_user_id = $actor->id;
+                $po->save();
+
+                $this->recordStatusHistory($po, $from, $po->status, 'approve', $actor, [
+                    'step' => $nextApproval->step->step_code,
+                    'final' => true,
+                ]);
+            } else {
+                // Still has pending approvals -> IN_APPROVAL
+                if ($po->status === PurchaseOrder::STATUS_SUBMITTED) {
+                    $po->status = PurchaseOrder::STATUS_IN_APPROVAL;
+                    $po->save();
+                }
+
+                $this->recordStatusHistory($po, $from, $po->status, 'approve', $actor, [
+                    'step' => $nextApproval->step->step_code,
+                ]);
+            }
+
+            return $this->loadForShow($po);
+        });
+    }
+
+    /**
+     * Reject PO using approval workflow.
+     */
+    public function reject(User $actor, int $purchaseOrderId, string $reason): PurchaseOrder
+    {
+        return DB::transaction(function () use ($actor, $purchaseOrderId, $reason) {
+            /** @var PurchaseOrder $po */
+            $po = PurchaseOrder::query()->lockForUpdate()->findOrFail($purchaseOrderId);
+
+            if (!in_array($po->status, [PurchaseOrder::STATUS_SUBMITTED, PurchaseOrder::STATUS_IN_APPROVAL], true)) {
+                throw ValidationException::withMessages([
+                    'status' => 'PO is not in a rejectable state.',
+                ]);
+            }
+
+            // ✨ NEW: Get next pending approval from workflow
+            $nextApproval = $this->approvalWorkflowService->getNextPendingApproval($po);
+
+            if (!$nextApproval) {
+                throw ValidationException::withMessages([
+                    'approval' => 'No pending approval found for this PO.',
+                ]);
+            }
+
+            // ✨ NEW: Reject via workflow service (handles authorization & cancels remaining)
+            $this->approvalWorkflowService->reject($actor, $nextApproval, $reason);
+
+            // Update PO status
+            $from = $po->status;
+            $po->status = PurchaseOrder::STATUS_REJECTED;
             $po->save();
 
-            $this->recordStatusHistory($po, $from, $po->status, 'approve', $actor, ['step' => 'director']);
+            $this->recordStatusHistory($po, $from, $po->status, 'reject', $actor, [
+                'step' => $nextApproval->step->step_code,
+                'reason' => $reason,
+            ]);
 
             return $this->loadForShow($po);
         });
@@ -548,31 +577,35 @@ class PurchaseOrderService
         }
     }
 
-    private function nextApprovalStep(PurchaseOrder $po): string
-    {
-        // Determine progress by checking status history meta.step.
-        $steps = PurchaseOrderStatusHistory::query()
-            ->where('purchase_order_id', $po->id)
-            ->where('action', 'approve')
-            ->orderBy('id')
-            ->pluck('meta');
-
-        $done = [];
-        foreach ($steps as $meta) {
-            if (is_array($meta) && isset($meta['step'])) {
-                $done[] = (string) $meta['step'];
-            }
-        }
-
-        if (!in_array('finance', $done, true)) {
-            return 'finance';
-        }
-        if (!in_array('gm', $done, true)) {
-            return 'gm';
-        }
-
-        return 'director';
-    }
+    /**
+     * DEPRECATED: This method is replaced by ApprovalWorkflowService.
+     * Kept for reference only.
+     */
+    // private function nextApprovalStep(PurchaseOrder $po): string
+    // {
+    //     // Determine progress by checking status history meta.step.
+    //     $steps = PurchaseOrderStatusHistory::query()
+    //         ->where('purchase_order_id', $po->id)
+    //         ->where('action', 'approve')
+    //         ->orderBy('id')
+    //         ->pluck('meta');
+    //
+    //     $done = [];
+    //     foreach ($steps as $meta) {
+    //         if (is_array($meta) && isset($meta['step'])) {
+    //             $done[] = (string) $meta['step'];
+    //         }
+    //     }
+    //
+    //     if (!in_array('finance', $done, true)) {
+    //         return 'finance';
+    //     }
+    //     if (!in_array('gm', $done, true)) {
+    //         return 'gm';
+    //     }
+    //
+    //     return 'director';
+    // }
 
     private function recordStatusHistory(
         PurchaseOrder $po,

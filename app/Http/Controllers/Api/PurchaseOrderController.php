@@ -9,6 +9,7 @@ use App\Http\Requests\Api\PurchaseOrder\ReopenPurchaseOrderRequest;
 use App\Http\Requests\Api\PurchaseOrder\StorePurchaseOrderRequest;
 use App\Http\Requests\Api\PurchaseOrder\UpdatePurchaseOrderDraftRequest;
 use App\Models\PurchaseOrder;
+use App\Services\Approval\ApprovalWorkflowService;
 use App\Services\PurchaseOrder\PurchaseOrderService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -17,6 +18,7 @@ class PurchaseOrderController extends Controller
 {
     public function __construct(
         private readonly PurchaseOrderService $service,
+        private readonly ApprovalWorkflowService $approvalWorkflowService,
     ) {}
 
     public function index(Request $request): JsonResponse
@@ -63,7 +65,22 @@ class PurchaseOrderController extends Controller
                 'statusHistories.actor',
                 'submittedBy',
                 'approvedBy',
+                'approvals.step',
+                'approvals.assignedToUser',
+                'approvals.approvedBy',
+                'approvals.rejectedBy',
             ]),
+        ]);
+    }
+
+    public function approvals(PurchaseOrder $purchaseOrder): JsonResponse
+    {
+        $this->authorize('view', $purchaseOrder);
+
+        $approvals = $this->approvalWorkflowService->getApprovals($purchaseOrder);
+
+        return response()->json([
+            'data' => $approvals,
         ]);
     }
 
@@ -90,6 +107,17 @@ class PurchaseOrderController extends Controller
         $this->authorize('approve', $purchaseOrder);
 
         $po = $this->service->approve($request->user(), $purchaseOrder->id);
+
+        return response()->json(['data' => $po]);
+    }
+
+    public function reject(Request $request, PurchaseOrder $purchaseOrder): JsonResponse
+    {
+        $this->authorize('reject', $purchaseOrder);
+
+        $reason = $request->input('reason', 'Rejected');
+
+        $po = $this->service->reject($request->user(), $purchaseOrder->id, $reason);
 
         return response()->json(['data' => $po]);
     }

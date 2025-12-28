@@ -41,11 +41,13 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/', [PurchaseOrderController::class, 'index']);
         Route::post('/', [PurchaseOrderController::class, 'store']);
         Route::get('/{purchaseOrder}', [PurchaseOrderController::class, 'show']);
+        Route::get('/{purchaseOrder}/approvals', [PurchaseOrderController::class, 'approvals']);
         Route::put('/{purchaseOrder}', [PurchaseOrderController::class, 'updateDraft']);
         Route::post('/{purchaseOrder}/reopen', [PurchaseOrderController::class, 'reopen']);
 
         Route::post('/{purchaseOrder}/submit', [PurchaseOrderController::class, 'submit']);
         Route::post('/{purchaseOrder}/approve', [PurchaseOrderController::class, 'approve']);
+        Route::post('/{purchaseOrder}/reject', [PurchaseOrderController::class, 'reject']);
         Route::post('/{purchaseOrder}/send', [PurchaseOrderController::class, 'send']);
         Route::post('/{purchaseOrder}/close', [PurchaseOrderController::class, 'close']);
         Route::post('/{purchaseOrder}/cancel', [PurchaseOrderController::class, 'cancel']);
