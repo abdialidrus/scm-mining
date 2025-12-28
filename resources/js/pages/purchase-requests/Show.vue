@@ -41,6 +41,10 @@ const pr = ref<PurchaseRequestDto | null>(null);
 
 const status = computed(() => pr.value?.status);
 
+const approveOpen = ref(false);
+const approveComments = ref('');
+const approveSubmitting = ref(false);
+
 const rejectOpen = ref(false);
 const rejectReason = ref('');
 const rejectSubmitting = ref(false);
@@ -92,12 +96,30 @@ async function submit() {
 }
 
 async function approve() {
+    approveComments.value = '';
+    fieldErrors.value = {};
+    approveOpen.value = true;
+}
+
+async function confirmApprove() {
     if (!pr.value) return;
+
+    approveSubmitting.value = true;
+    error.value = null;
+    fieldErrors.value = {};
+
     try {
-        await approvePurchaseRequest(pr.value.id);
+        await approvePurchaseRequest(
+            pr.value.id,
+            approveComments.value.trim() || undefined,
+        );
+        approveOpen.value = false;
+        approveComments.value = '';
         await load();
     } catch (e: any) {
         setApiError(e, 'Failed to approve');
+    } finally {
+        approveSubmitting.value = false;
     }
 }
 
@@ -341,6 +363,136 @@ onMounted(load);
                     </div>
                 </div>
 
+                <!-- Approvals Section -->
+                <div
+                    v-if="pr.approvals && pr.approvals.length > 0"
+                    class="print-block rounded-lg border"
+                >
+                    <div class="border-b p-4">
+                        <h2 class="text-sm font-semibold">Approval Workflow</h2>
+                    </div>
+                    <div class="p-4">
+                        <div class="space-y-4">
+                            <div
+                                v-for="(approval, idx) in pr.approvals"
+                                :key="approval.id"
+                                class="flex items-start gap-4 border-b pb-4 last:border-b-0 last:pb-0"
+                            >
+                                <div class="shrink-0">
+                                    <div
+                                        class="flex h-8 w-8 items-center justify-center rounded-full text-sm font-medium"
+                                        :class="{
+                                            'bg-green-100 text-green-800':
+                                                approval.status === 'APPROVED',
+                                            'bg-red-100 text-red-800':
+                                                approval.status === 'REJECTED',
+                                            'bg-yellow-100 text-yellow-800':
+                                                approval.status === 'PENDING',
+                                            'bg-gray-100 text-gray-800':
+                                                approval.status === 'CANCELLED',
+                                        }"
+                                    >
+                                        {{ idx + 1 }}
+                                    </div>
+                                </div>
+                                <div class="flex-1">
+                                    <div
+                                        class="flex items-center justify-between"
+                                    >
+                                        <div>
+                                            <div class="text-sm font-medium">
+                                                {{
+                                                    approval.step?.name ??
+                                                    'Approval'
+                                                }}
+                                            </div>
+                                            <div
+                                                class="text-xs text-muted-foreground"
+                                            >
+                                                <template
+                                                    v-if="
+                                                        approval.assigned_to_user_id &&
+                                                        approval.approver
+                                                    "
+                                                >
+                                                    {{ approval.approver.name }}
+                                                </template>
+                                                <template
+                                                    v-else-if="
+                                                        approval.assigned_to_role
+                                                    "
+                                                >
+                                                    Role:
+                                                    {{
+                                                        approval.assigned_to_role
+                                                    }}
+                                                </template>
+                                                <template v-else>
+                                                    Unassigned
+                                                </template>
+                                            </div>
+                                        </div>
+                                        <StatusBadge
+                                            :status="approval.status"
+                                        />
+                                    </div>
+                                    <div
+                                        v-if="
+                                            approval.status === 'APPROVED' &&
+                                            approval.approved_by
+                                        "
+                                        class="mt-2 text-xs text-muted-foreground"
+                                    >
+                                        <div>
+                                            Approved by:
+                                            {{ approval.approved_by.name }}
+                                        </div>
+                                        <div v-if="approval.approved_at">
+                                            {{
+                                                formatDateTime(
+                                                    approval.approved_at,
+                                                )
+                                            }}
+                                        </div>
+                                        <div
+                                            v-if="approval.comments"
+                                            class="mt-1 text-sm"
+                                        >
+                                            Comments: {{ approval.comments }}
+                                        </div>
+                                    </div>
+                                    <div
+                                        v-if="
+                                            approval.status === 'REJECTED' &&
+                                            approval.rejected_by
+                                        "
+                                        class="mt-2 text-xs text-muted-foreground"
+                                    >
+                                        <div>
+                                            Rejected by:
+                                            {{ approval.rejected_by.name }}
+                                        </div>
+                                        <div v-if="approval.rejected_at">
+                                            {{
+                                                formatDateTime(
+                                                    approval.rejected_at,
+                                                )
+                                            }}
+                                        </div>
+                                        <div
+                                            v-if="approval.rejection_reason"
+                                            class="mt-1 text-sm text-red-600"
+                                        >
+                                            Reason:
+                                            {{ approval.rejection_reason }}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 <div class="print-block rounded-lg border">
                     <div class="border-b p-4">
                         <h2 class="text-sm font-semibold">Audit History</h2>
@@ -372,12 +524,12 @@ onMounted(load);
                         >Submit</Button
                     >
                     <Button
-                        v-if="status === 'SUBMITTED' && canApprove"
+                        v-if="status === 'PENDING_APPROVAL' && canApprove"
                         @click="approve"
                         >Approve</Button
                     >
                     <Button
-                        v-if="status === 'SUBMITTED' && canApprove"
+                        v-if="status === 'PENDING_APPROVAL' && canApprove"
                         variant="destructive"
                         @click="openReject"
                     >
@@ -420,12 +572,50 @@ onMounted(load);
         </div>
     </AppLayout>
 
+    <Dialog v-model:open="approveOpen">
+        <DialogContent>
+            <DialogHeader>
+                <DialogTitle>Approve Purchase Request</DialogTitle>
+                <DialogDescription>
+                    Optionally add comments about your approval.
+                </DialogDescription>
+            </DialogHeader>
+
+            <div class="space-y-2">
+                <label class="text-sm font-medium">Comments (Optional)</label>
+                <Input
+                    v-model="approveComments"
+                    placeholder="Add comments if needed"
+                    :disabled="approveSubmitting"
+                />
+            </div>
+
+            <DialogFooter>
+                <Button
+                    type="button"
+                    variant="outline"
+                    :disabled="approveSubmitting"
+                    @click="approveOpen = false"
+                >
+                    Cancel
+                </Button>
+                <Button
+                    type="button"
+                    :disabled="approveSubmitting"
+                    @click="confirmApprove"
+                >
+                    Approve
+                </Button>
+            </DialogFooter>
+        </DialogContent>
+    </Dialog>
+
     <Dialog v-model:open="rejectOpen">
         <DialogContent>
             <DialogHeader>
                 <DialogTitle>Reject Purchase Request</DialogTitle>
                 <DialogDescription>
-                    Please provide a reason. This PR will return to DRAFT.
+                    Please provide a reason for rejection.
                 </DialogDescription>
             </DialogHeader>
 

@@ -65,6 +65,10 @@ class PurchaseRequestController extends Controller
                 'requester',
                 'approvedBy',
                 'statusHistories.actor',
+                'approvals.step',
+                'approvals.approver',
+                'approvals.approvedBy',
+                'approvals.rejectedBy',
             ]),
         ]);
     }
@@ -98,7 +102,8 @@ class PurchaseRequestController extends Controller
     {
         $this->authorize('approve', $purchaseRequest);
 
-        $pr = $this->service->approve($request->user(), $purchaseRequest->id);
+        $comments = $request->input('comments');
+        $pr = $this->service->approve($request->user(), $purchaseRequest->id, $comments);
 
         return response()->json(['data' => $pr]);
     }
@@ -107,7 +112,7 @@ class PurchaseRequestController extends Controller
     {
         $this->authorize('approve', $purchaseRequest);
 
-        $pr = $this->service->reject($request->user(), $purchaseRequest->id, $request->validated()['reason'] ?? null);
+        $pr = $this->service->reject($request->user(), $purchaseRequest->id, $request->validated()['reason']);
 
         return response()->json(['data' => $pr]);
     }

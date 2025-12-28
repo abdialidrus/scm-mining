@@ -11,8 +11,10 @@ class PurchaseRequest extends Model
     use HasFactory;
 
     public const STATUS_DRAFT = 'DRAFT';
+    public const STATUS_PENDING_APPROVAL = 'PENDING_APPROVAL';
     public const STATUS_SUBMITTED = 'SUBMITTED';
     public const STATUS_APPROVED = 'APPROVED';
+    public const STATUS_REJECTED = 'REJECTED';
     public const STATUS_CONVERTED_TO_PO = 'CONVERTED_TO_PO';
 
     protected $fillable = [
@@ -65,5 +67,10 @@ class PurchaseRequest extends Model
     public function statusHistories()
     {
         return $this->hasMany(PurchaseRequestStatusHistory::class);
+    }
+
+    public function approvals()
+    {
+        return $this->morphMany(Approval::class, 'approvable');
     }
 }

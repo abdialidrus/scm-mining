@@ -6,16 +6,19 @@ use App\Models\PurchaseRequest;
 use App\Models\PurchaseRequestLine;
 use App\Models\PurchaseRequestStatusHistory;
 use App\Models\User;
+use App\Services\Approval\ApprovalWorkflowService;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\ValidationException;
 
 class PurchaseRequestService
 {
     public function __construct(
         private readonly PurchaseRequestNumberGenerator $numberGenerator,
+        private readonly ApprovalWorkflowService $approvalWorkflowService,
     ) {}
 
     /**
@@ -103,7 +106,7 @@ class PurchaseRequestService
 
             $fromStatus = $pr->status;
 
-            $pr->status = PurchaseRequest::STATUS_SUBMITTED;
+            $pr->status = PurchaseRequest::STATUS_PENDING_APPROVAL;
             $pr->submitted_at = now();
             $pr->submitted_by_user_id = $actor->id;
             $pr->save();
@@ -116,29 +119,37 @@ class PurchaseRequestService
                 actor: $actor,
             );
 
-            return $pr->load(['lines.item', 'lines.uom', 'department.head', 'requester']);
-        });
-    }
-
-    public function approve(User $actor, int $purchaseRequestId): PurchaseRequest
-    {
-        return DB::transaction(function () use ($actor, $purchaseRequestId) {
-            /** @var PurchaseRequest $pr */
-            $pr = PurchaseRequest::query()
-                ->with(['department'])
-                ->lockForUpdate()
-                ->findOrFail($purchaseRequestId);
-
-            if ($pr->status !== PurchaseRequest::STATUS_SUBMITTED) {
-                throw ValidationException::withMessages([
-                    'status' => 'Only SUBMITTED PR can be approved.',
+            // Initiate approval workflow
+            try {
+                $this->approvalWorkflowService->initiate(
+                    approvable: $pr,
+                    workflowCode: 'PR_STANDARD'
+                );
+            } catch (\Exception $e) {
+                // Log error but don't block submission
+                // Fallback: PR will be in PENDING_APPROVAL without workflow
+                Log::warning('Failed to initiate PR approval workflow', [
+                    'pr_id' => $pr->id,
+                    'error' => $e->getMessage(),
                 ]);
             }
 
-            $headId = $pr->department?->head_user_id;
-            if (!$headId) {
+            return $pr->load(['lines.item', 'lines.uom', 'department.head', 'requester', 'approvals.step', 'approvals.approver']);
+        });
+    }
+
+    public function approve(User $actor, int $purchaseRequestId, ?string $comments = null): PurchaseRequest
+    {
+        return DB::transaction(function () use ($actor, $purchaseRequestId, $comments) {
+            /** @var PurchaseRequest $pr */
+            $pr = PurchaseRequest::query()
+                ->with(['department', 'approvals'])
+                ->lockForUpdate()
+                ->findOrFail($purchaseRequestId);
+
+            if ($pr->status !== PurchaseRequest::STATUS_PENDING_APPROVAL) {
                 throw ValidationException::withMessages([
-                    'approval' => 'Department head is not configured for this PR department.',
+                    'status' => 'Only PENDING_APPROVAL PR can be approved.',
                 ]);
             }
 
@@ -147,53 +158,62 @@ class PurchaseRequestService
                 throw new AuthorizationException('Requester cannot approve their own PR.');
             }
 
-            if ((int) $headId !== (int) $actor->id) {
-                throw new AuthorizationException('Only department head can approve this PR.');
+            // Get the current pending approval for this user
+            $approval = $this->approvalWorkflowService->getNextPendingApproval($pr);
+
+            if (!$approval) {
+                throw ValidationException::withMessages([
+                    'approval' => 'No pending approval found for this PR.',
+                ]);
+            }
+
+            // Check if user can approve this step
+            if (!$this->approvalWorkflowService->canApprove($actor, $approval)) {
+                throw new AuthorizationException('You are not authorized to approve this PR at this stage.');
             }
 
             $fromStatus = $pr->status;
 
-            $pr->status = PurchaseRequest::STATUS_APPROVED;
-            $pr->approved_at = now();
-            $pr->approved_by_user_id = $actor->id;
-            $pr->save();
+            // Approve the current step
+            $this->approvalWorkflowService->approve($actor, $approval, $comments);
 
-            $this->recordStatusHistory(
-                pr: $pr,
-                fromStatus: $fromStatus,
-                toStatus: $pr->status,
-                action: 'approve',
-                actor: $actor,
-            );
+            // Check if workflow is complete
+            if ($this->approvalWorkflowService->isWorkflowComplete($pr)) {
+                $pr->status = PurchaseRequest::STATUS_APPROVED;
+                $pr->approved_at = now();
+                $pr->approved_by_user_id = $actor->id;
+                $pr->save();
 
-            return $pr->load(['lines.item', 'lines.uom', 'department.head', 'requester', 'approvedBy']);
+                $this->recordStatusHistory(
+                    pr: $pr,
+                    fromStatus: $fromStatus,
+                    toStatus: $pr->status,
+                    action: 'approve',
+                    actor: $actor
+                );
+            }
+
+            return $pr->load(['lines.item', 'lines.uom', 'department.head', 'requester', 'approvals.step', 'approvals.approver']);
         });
     }
 
     /**
-     * Reject a submitted PR back to DRAFT.
+     * Reject a PR approval.
      *
-     * Note: authorization rule mirrors approval (department head; requester cannot reject own PR).
+     * Note: authorization rule mirrors approval (requester cannot reject own PR).
      */
-    public function reject(User $actor, int $purchaseRequestId, ?string $reason = null): PurchaseRequest
+    public function reject(User $actor, int $purchaseRequestId, string $reason): PurchaseRequest
     {
         return DB::transaction(function () use ($actor, $purchaseRequestId, $reason) {
             /** @var PurchaseRequest $pr */
             $pr = PurchaseRequest::query()
-                ->with(['department'])
+                ->with(['department', 'approvals'])
                 ->lockForUpdate()
                 ->findOrFail($purchaseRequestId);
 
-            if ($pr->status !== PurchaseRequest::STATUS_SUBMITTED) {
+            if ($pr->status !== PurchaseRequest::STATUS_PENDING_APPROVAL) {
                 throw ValidationException::withMessages([
-                    'status' => 'Only SUBMITTED PR can be rejected.',
-                ]);
-            }
-
-            $headId = $pr->department?->head_user_id;
-            if (!$headId) {
-                throw ValidationException::withMessages([
-                    'approval' => 'Department head is not configured for this PR department.',
+                    'status' => 'Only PENDING_APPROVAL PR can be rejected.',
                 ]);
             }
 
@@ -201,16 +221,27 @@ class PurchaseRequestService
                 throw new AuthorizationException('Requester cannot reject their own PR.');
             }
 
-            if ((int) $headId !== (int) $actor->id) {
-                throw new AuthorizationException('Only department head can reject this PR.');
+            // Get the current pending approval for this user
+            $approval = $this->approvalWorkflowService->getNextPendingApproval($pr);
+
+            if (!$approval) {
+                throw ValidationException::withMessages([
+                    'approval' => 'No pending approval found for this PR.',
+                ]);
+            }
+
+            // Check if user can reject this step
+            if (!$this->approvalWorkflowService->canApprove($actor, $approval)) {
+                throw new AuthorizationException('You are not authorized to reject this PR at this stage.');
             }
 
             $fromStatus = $pr->status;
 
-            // Back to draft (so requester can fix and re-submit)
-            $pr->status = PurchaseRequest::STATUS_DRAFT;
-            $pr->submitted_at = null;
-            $pr->submitted_by_user_id = null;
+            // Reject the approval (this will cancel remaining approvals)
+            $this->approvalWorkflowService->reject($actor, $approval, $reason);
+
+            // Update PR status to REJECTED
+            $pr->status = PurchaseRequest::STATUS_REJECTED;
             $pr->save();
 
             $this->recordStatusHistory(

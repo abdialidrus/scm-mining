@@ -31,15 +31,34 @@ class PurchaseRequestPolicy
 
     public function approve(User $user, PurchaseRequest $purchaseRequest): bool
     {
-        if ($purchaseRequest->status !== PurchaseRequest::STATUS_SUBMITTED) {
+        // Only PRs in PENDING_APPROVAL status can be approved
+        if ($purchaseRequest->status !== PurchaseRequest::STATUS_PENDING_APPROVAL) {
             return false;
         }
 
-        // requester cannot approve own PR.
+        // Requester cannot approve own PR
         if ((int) $purchaseRequest->requester_user_id === (int) $user->id) {
             return false;
         }
 
-        return (int) $purchaseRequest->department?->head_user_id === (int) $user->id;
+        // Check if user can approve via approval workflow service
+        // For now, allow if user is department head or has an assigned approval
+        // The actual authorization will be checked in the service layer
+
+        // Quick check: is user the department head?
+        if ((int) $purchaseRequest->department?->head_user_id === (int) $user->id) {
+            return true;
+        }
+
+        // Check if user has a pending approval assigned to them
+        $hasPendingApproval = $purchaseRequest->approvals()
+            ->where('status', 'PENDING')
+            ->where(function ($query) use ($user) {
+                $query->where('assigned_to_user_id', $user->id)
+                    ->orWhereIn('assigned_to_role', $user->roles->pluck('name'));
+            })
+            ->exists();
+
+        return $hasPendingApproval;
     }
 }

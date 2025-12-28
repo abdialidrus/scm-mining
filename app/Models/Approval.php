@@ -63,6 +63,14 @@ class Approval extends Model
         return $this->belongsTo(User::class, 'assigned_to_user_id');
     }
 
+    /**
+     * Alias for assignedToUser for backward compatibility.
+     */
+    public function approver(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'assigned_to_user_id');
+    }
+
     public function approvedBy(): BelongsTo
     {
         return $this->belongsTo(User::class, 'approved_by_user_id');

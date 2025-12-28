@@ -10,6 +10,28 @@ export type ItemDto = {
     base_uom_name: string | null;
 };
 
+export type ApprovalDto = {
+    id: number;
+    status: string;
+    assigned_to_user_id: number | null;
+    assigned_to_role: string | null;
+    approved_by_user_id: number | null;
+    rejected_by_user_id: number | null;
+    approved_at: string | null;
+    rejected_at: string | null;
+    comments: string | null;
+    rejection_reason: string | null;
+    step?: {
+        id: number;
+        name: string;
+        sequence: number;
+        approver_type: string;
+    } | null;
+    approver?: { id: number; name: string; email: string } | null;
+    approved_by?: { id: number; name: string; email: string } | null;
+    rejected_by?: { id: number; name: string; email: string } | null;
+};
+
 export type PurchaseRequestStatusHistoryDto = {
     id: number;
     from_status: string | null;
@@ -59,6 +81,7 @@ export type PurchaseRequestDto = {
     created_at?: string | null;
     lines: PurchaseRequestLineDto[];
     status_histories?: PurchaseRequestStatusHistoryDto[];
+    approvals?: ApprovalDto[];
 };
 
 export type Paginated<T> = {
@@ -150,17 +173,17 @@ export async function submitPurchaseRequest(id: number) {
     );
 }
 
-export async function approvePurchaseRequest(id: number) {
+export async function approvePurchaseRequest(id: number, comments?: string) {
     return apiFetch<{ data: PurchaseRequestDto }>(
         `/api/purchase-requests/${id}/approve`,
         {
             method: 'POST',
-            body: JSON.stringify({}),
+            body: JSON.stringify({ comments }),
         },
     );
 }
 
-export async function rejectPurchaseRequest(id: number, reason?: string) {
+export async function rejectPurchaseRequest(id: number, reason: string) {
     return apiFetch<{ data: PurchaseRequestDto }>(
         `/api/purchase-requests/${id}/reject`,
         {
