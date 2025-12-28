@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Api\ApprovalWorkflowController;
 use App\Http\Controllers\Api\DepartmentController;
 use App\Http\Controllers\Api\GoodsReceiptController;
 use App\Http\Controllers\Api\ItemController;
@@ -94,4 +95,17 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::delete('/warehouses/{warehouse}', [WarehouseController::class, 'destroy']);
 
     Route::get('/warehouse-locations', [WarehouseLocationController::class, 'index']);
+
+    Route::prefix('approval-workflows')->group(function () {
+        Route::get('/', [ApprovalWorkflowController::class, 'index']);
+        Route::post('/', [ApprovalWorkflowController::class, 'store']);
+        Route::get('/{approvalWorkflow}', [ApprovalWorkflowController::class, 'show']);
+        Route::put('/{approvalWorkflow}', [ApprovalWorkflowController::class, 'update']);
+        Route::delete('/{approvalWorkflow}', [ApprovalWorkflowController::class, 'destroy']);
+
+        Route::post('/{approvalWorkflow}/steps', [ApprovalWorkflowController::class, 'storeStep']);
+        Route::put('/{approvalWorkflow}/steps/{step}', [ApprovalWorkflowController::class, 'updateStep']);
+        Route::delete('/{approvalWorkflow}/steps/{step}', [ApprovalWorkflowController::class, 'destroyStep']);
+        Route::put('/{approvalWorkflow}/steps/reorder', [ApprovalWorkflowController::class, 'reorderSteps']);
+    });
 });

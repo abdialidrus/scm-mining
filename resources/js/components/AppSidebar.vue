@@ -12,18 +12,26 @@ import {
 } from '@/components/ui/sidebar';
 import { dashboard } from '@/routes';
 import { type NavItem } from '@/types';
-import { Link } from '@inertiajs/vue3';
+import { Link, usePage } from '@inertiajs/vue3';
 import {
     FileText,
+    GitBranch,
     LayoutGrid,
     Package,
     PackageCheck,
+    PackageOpen,
     Ruler,
     ShoppingCart,
     Users,
     Warehouse,
 } from 'lucide-vue-next';
 import AppLogo from './AppLogo.vue';
+
+const page = usePage();
+const user = page.props.auth?.user as any;
+const isSuperAdmin = user?.roles?.some(
+    (role: any) => role.name === 'super_admin',
+);
 
 const mainNavItems: NavItem[] = [
     {
@@ -48,6 +56,11 @@ const procurementNavItems: NavItem[] = [
         title: 'Goods Receipts',
         href: '/goods-receipts',
         icon: PackageCheck,
+    },
+    {
+        title: 'Put Away',
+        href: '/put-aways',
+        icon: PackageOpen,
     },
 ];
 
@@ -84,6 +97,16 @@ const masterDataNavItems: NavItem[] = [
     },
 ];
 
+const settingsNavItems: NavItem[] = isSuperAdmin
+    ? [
+          {
+              title: 'Approval Workflows',
+              href: '/approval-workflows',
+              icon: GitBranch,
+          },
+      ]
+    : [];
+
 // Remove unused footerNavItems to avoid lint errors.
 // const footerNavItems: NavItem[] = [
 //     {
@@ -117,6 +140,11 @@ const masterDataNavItems: NavItem[] = [
             <NavMain :title="'Main'" :items="mainNavItems" />
             <NavMain :title="'Procurement'" :items="procurementNavItems" />
             <NavMain :title="'Master Data'" :items="masterDataNavItems" />
+            <NavMain
+                v-if="isSuperAdmin"
+                :title="'Settings'"
+                :items="settingsNavItems"
+            />
         </SidebarContent>
 
         <SidebarFooter>
