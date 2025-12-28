@@ -19,3 +19,4 @@ require __DIR__ . '/purchase_orders.php';
 require __DIR__ . '/master_data.php';
 require __DIR__ . '/goods_receipts.php';
 require __DIR__ . '/put_aways.php';
+require __DIR__ . '/stock_reports.php';

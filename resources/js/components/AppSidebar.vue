@@ -22,6 +22,7 @@ import {
     PackageOpen,
     Ruler,
     ShoppingCart,
+    TrendingUp,
     Users,
     Warehouse,
 } from 'lucide-vue-next';
@@ -61,6 +62,14 @@ const procurementNavItems: NavItem[] = [
         title: 'Put Away',
         href: '/put-aways',
         icon: PackageOpen,
+    },
+];
+
+const inventoryNavItems: NavItem[] = [
+    {
+        title: 'Stock Reports',
+        href: '/stock-reports',
+        icon: TrendingUp,
     },
 ];
 
@@ -139,6 +148,7 @@ const settingsNavItems: NavItem[] = isSuperAdmin
         <SidebarContent>
             <NavMain :title="'Main'" :items="mainNavItems" />
             <NavMain :title="'Procurement'" :items="procurementNavItems" />
+            <NavMain :title="'Inventory'" :items="inventoryNavItems" />
             <NavMain :title="'Master Data'" :items="masterDataNavItems" />
             <NavMain
                 v-if="isSuperAdmin"
