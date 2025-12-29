@@ -34,6 +34,32 @@ const user = page.props.auth?.user as any;
 const isSuperAdmin = user?.roles?.some(
     (role: any) => role.name === 'super_admin',
 );
+const isProcurement = user?.roles?.some(
+    (role: any) => role.name === 'procurement',
+);
+const isFinance = user?.roles?.some((role: any) => role.name === 'finance');
+const isWarehouse = user?.roles?.some((role: any) => role.name === 'warehouse');
+const isRequestor = user?.roles?.some((role: any) => role.name === 'requester');
+const isGm = user?.roles?.some((role: any) => role.name === 'gm');
+const isDirector = user?.roles?.some((role: any) => role.name === 'director');
+
+const canShowMasterData = isSuperAdmin || isProcurement;
+
+const canShowPurchaseRequests =
+    isSuperAdmin || isProcurement || isRequestor || isGm || isDirector;
+
+const canShowPurchaseOrders =
+    isSuperAdmin || isProcurement || isFinance || isGm || isDirector;
+
+const canShowGoodsReceipts =
+    isSuperAdmin || isWarehouse || isFinance || isGm || isDirector;
+
+const canShowPutAways = isSuperAdmin || isWarehouse || isGm || isDirector;
+
+const canShowPickingOrders = isSuperAdmin || isWarehouse || isGm || isDirector;
+
+const canShowInventoryReports =
+    isSuperAdmin || isProcurement || isGm || isDirector;
 
 const mainNavItems: NavItem[] = [
     {
@@ -43,33 +69,51 @@ const mainNavItems: NavItem[] = [
     },
 ];
 
-const procurementNavItems: NavItem[] = [
-    {
-        title: 'Purchase Requests',
-        href: '/purchase-requests',
-        icon: FileText,
-    },
-    {
-        title: 'Purchase Orders',
-        href: '/purchase-orders',
-        icon: ShoppingCart,
-    },
-    {
-        title: 'Goods Receipts',
-        href: '/goods-receipts',
-        icon: PackageCheck,
-    },
-    {
-        title: 'Put Away',
-        href: '/put-aways',
-        icon: PackageOpen,
-    },
-    {
-        title: 'Picking Orders',
-        href: '/picking-orders',
-        icon: PackageMinus,
-    },
-];
+function getProcurementNavItems(): NavItem[] {
+    const items: NavItem[] = [];
+
+    if (canShowPurchaseRequests) {
+        items.push({
+            title: 'Purchase Requests',
+            href: '/purchase-requests',
+            icon: FileText,
+        });
+    }
+
+    if (canShowPurchaseOrders) {
+        items.push({
+            title: 'Purchase Orders',
+            href: '/purchase-orders',
+            icon: ShoppingCart,
+        });
+    }
+
+    if (canShowGoodsReceipts) {
+        items.push({
+            title: 'Goods Receipts',
+            href: '/goods-receipts',
+            icon: PackageCheck,
+        });
+    }
+
+    if (canShowPutAways) {
+        items.push({
+            title: 'Put Away',
+            href: '/put-aways',
+            icon: PackageOpen,
+        });
+    }
+
+    if (canShowPickingOrders) {
+        items.push({
+            title: 'Picking Orders',
+            href: '/picking-orders',
+            icon: PackageMinus,
+        });
+    }
+
+    return items;
+}
 
 const inventoryNavItems: NavItem[] = [
     {
@@ -153,9 +197,17 @@ const settingsNavItems: NavItem[] = isSuperAdmin
 
         <SidebarContent>
             <NavMain :title="'Main'" :items="mainNavItems" />
-            <NavMain :title="'Procurement'" :items="procurementNavItems" />
-            <NavMain :title="'Inventory'" :items="inventoryNavItems" />
-            <NavMain :title="'Master Data'" :items="masterDataNavItems" />
+            <NavMain :title="'Procurement'" :items="getProcurementNavItems()" />
+            <NavMain
+                v-if="canShowInventoryReports"
+                :title="'Inventory'"
+                :items="inventoryNavItems"
+            />
+            <NavMain
+                v-if="canShowMasterData"
+                :title="'Master Data'"
+                :items="masterDataNavItems"
+            />
             <NavMain
                 v-if="isSuperAdmin"
                 :title="'Settings'"
