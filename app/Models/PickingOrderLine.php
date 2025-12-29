@@ -6,33 +6,27 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
-class StockMovement extends Model
+class PickingOrderLine extends Model
 {
     use HasFactory;
 
-    public const REF_GOODS_RECEIPT = 'GOODS_RECEIPT';
-    public const REF_PUT_AWAY = 'PUT_AWAY';
-    public const REF_PICKING_ORDER = 'PICKING_ORDER';
-    public const REF_ADJUSTMENT = 'ADJUSTMENT';
-
     protected $fillable = [
+        'picking_order_id',
         'item_id',
         'uom_id',
         'source_location_id',
-        'destination_location_id',
         'qty',
-        'reference_type',
-        'reference_id',
-        'created_by',
-        'movement_at',
-        'meta',
+        'remarks',
     ];
 
     protected $casts = [
         'qty' => 'decimal:4',
-        'movement_at' => 'datetime',
-        'meta' => 'array',
     ];
+
+    public function pickingOrder(): BelongsTo
+    {
+        return $this->belongsTo(PickingOrder::class);
+    }
 
     public function item(): BelongsTo
     {
@@ -47,15 +41,5 @@ class StockMovement extends Model
     public function sourceLocation(): BelongsTo
     {
         return $this->belongsTo(WarehouseLocation::class, 'source_location_id');
-    }
-
-    public function destinationLocation(): BelongsTo
-    {
-        return $this->belongsTo(WarehouseLocation::class, 'destination_location_id');
-    }
-
-    public function creator(): BelongsTo
-    {
-        return $this->belongsTo(User::class, 'created_by');
     }
 }

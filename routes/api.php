@@ -4,6 +4,7 @@ use App\Http\Controllers\Api\ApprovalWorkflowController;
 use App\Http\Controllers\Api\DepartmentController;
 use App\Http\Controllers\Api\GoodsReceiptController;
 use App\Http\Controllers\Api\ItemController;
+use App\Http\Controllers\Api\PickingOrderController;
 use App\Http\Controllers\Api\PurchaseOrderController;
 use App\Http\Controllers\Api\PurchaseRequestController;
 use App\Http\Controllers\Api\PutAwayController;
@@ -74,6 +75,15 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/{putAway}/cancel', [PutAwayController::class, 'cancel']);
     });
 
+    Route::prefix('picking-orders')->group(function () {
+        Route::get('/', [PickingOrderController::class, 'index']);
+        Route::post('/', [PickingOrderController::class, 'store']);
+        Route::get('/{pickingOrder}', [PickingOrderController::class, 'show']);
+
+        Route::post('/{pickingOrder}/post', [PickingOrderController::class, 'post']);
+        Route::post('/{pickingOrder}/cancel', [PickingOrderController::class, 'cancel']);
+    });
+
     Route::get('/roles', [RoleController::class, 'index']);
 
     Route::get('/users', [UserController::class, 'index']);
@@ -91,10 +101,28 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/warehouses', [WarehouseController::class, 'index']);
     Route::post('/warehouses', [WarehouseController::class, 'store']);
     Route::get('/warehouses/{warehouse}', [WarehouseController::class, 'show']);
+    Route::get('/warehouses/{warehouse}/locations', [WarehouseLocationController::class, 'index']);
     Route::put('/warehouses/{warehouse}', [WarehouseController::class, 'update']);
     Route::delete('/warehouses/{warehouse}', [WarehouseController::class, 'destroy']);
 
     Route::get('/warehouse-locations', [WarehouseLocationController::class, 'index']);
+
+    // Stock checking endpoint for picking order form
+    Route::get('/stock/location/{location}/item/{item}', function (int $location, int $item, Request $request) {
+        $uomId = $request->query('uom_id') ? (int) $request->query('uom_id') : null;
+        $stockQueryService = app(\App\Services\Inventory\StockQueryService::class);
+
+        $qtyOnHand = $stockQueryService->getOnHandForLocation($location, $item, $uomId);
+
+        return response()->json([
+            'data' => [
+                'location_id' => $location,
+                'item_id' => $item,
+                'uom_id' => $uomId,
+                'qty_on_hand' => $qtyOnHand,
+            ],
+        ]);
+    });
 
     Route::prefix('approval-workflows')->group(function () {
         Route::get('/', [ApprovalWorkflowController::class, 'index']);

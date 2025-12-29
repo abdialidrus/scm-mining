@@ -116,6 +116,7 @@ function getReferenceTypeLabel(type: string): string {
     const labels: Record<string, string> = {
         GOODS_RECEIPT: 'Goods Receipt',
         PUT_AWAY: 'Put Away',
+        PICKING_ORDER: 'Picking Order',
         ADJUSTMENT: 'Adjustment',
     };
     return labels[type] ?? type;
@@ -125,6 +126,7 @@ function getReferenceTypeBadgeClass(type: string): string {
     const classes: Record<string, string> = {
         GOODS_RECEIPT: 'bg-blue-100 text-blue-800',
         PUT_AWAY: 'bg-green-100 text-green-800',
+        PICKING_ORDER: 'bg-red-100 text-red-800',
         ADJUSTMENT: 'bg-yellow-100 text-yellow-800',
     };
     return classes[type] ?? 'bg-gray-100 text-gray-800';
@@ -185,6 +187,7 @@ onMounted(() => {
                             <option value="">All types</option>
                             <option value="GOODS_RECEIPT">Goods Receipt</option>
                             <option value="PUT_AWAY">Put Away</option>
+                            <option value="PICKING_ORDER">Picking Order</option>
                             <option value="ADJUSTMENT">Adjustment</option>
                         </select>
                     </div>
@@ -371,6 +374,19 @@ onMounted(() => {
                                             PA:
                                             {{
                                                 movement.meta.put_away_number ??
+                                                movement.reference_id
+                                            }}
+                                        </template>
+                                        <template
+                                            v-else-if="
+                                                movement.reference_type ===
+                                                'PICKING_ORDER'
+                                            "
+                                        >
+                                            PK:
+                                            {{
+                                                movement.meta
+                                                    .picking_order_number ??
                                                 movement.reference_id
                                             }}
                                         </template>

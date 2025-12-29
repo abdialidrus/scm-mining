@@ -19,6 +19,7 @@ import {
     LayoutGrid,
     Package,
     PackageCheck,
+    PackageMinus,
     PackageOpen,
     Ruler,
     ShoppingCart,
@@ -62,6 +63,11 @@ const procurementNavItems: NavItem[] = [
         title: 'Put Away',
         href: '/put-aways',
         icon: PackageOpen,
+    },
+    {
+        title: 'Picking Orders',
+        href: '/picking-orders',
+        icon: PackageMinus,
     },
 ];
 
