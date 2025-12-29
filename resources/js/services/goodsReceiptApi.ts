@@ -30,7 +30,7 @@ export type GoodsReceiptDto = {
     status: string;
 
     purchase_order_id: number;
-    purchaseOrder?: { id: number; po_number: string } | null;
+    purchase_order?: { id: number; po_number: string } | null;
 
     warehouse_id: number;
     warehouse?: { id: number; code: string; name: string } | null;

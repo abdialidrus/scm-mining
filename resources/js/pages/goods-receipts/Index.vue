@@ -193,7 +193,7 @@ onMounted(load);
                         <TableRow>
                             <TableHead>GR No</TableHead>
                             <TableHead>Status</TableHead>
-                            <TableHead>PO</TableHead>
+                            <TableHead>PO No</TableHead>
                             <TableHead>Warehouse</TableHead>
                         </TableRow>
                     </TableHeader>
@@ -211,7 +211,7 @@ onMounted(load);
                                 ><StatusBadge :status="gr.status"
                             /></TableCell>
                             <TableCell>{{
-                                gr.purchaseOrder?.po_number ??
+                                gr.purchase_order?.po_number ??
                                 gr.purchase_order_id
                             }}</TableCell>
                             <TableCell>
