@@ -52,4 +52,9 @@ class GoodsReceiptLine extends Model
     {
         return $this->belongsTo(Uom::class);
     }
+
+    public function serialNumbers()
+    {
+        return $this->hasMany(ItemSerialNumber::class, 'goods_receipt_line_id');
+    }
 }

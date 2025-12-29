@@ -22,6 +22,7 @@ class ItemController extends Controller
                 'items.id',
                 'items.sku',
                 'items.name',
+                'items.is_serialized',
                 'items.base_uom_id',
                 DB::raw('uoms.code as base_uom_code'),
                 DB::raw('uoms.name as base_uom_name'),

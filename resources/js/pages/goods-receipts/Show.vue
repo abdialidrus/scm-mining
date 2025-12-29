@@ -211,7 +211,7 @@ onMounted(load);
                                     class="font-medium hover:underline"
                                 >
                                     {{
-                                        gr.purchaseOrder?.po_number ??
+                                        gr.purchase_order?.po_number ??
                                         `PO #${gr.purchase_order_id}`
                                     }}
                                 </Link>
@@ -260,25 +260,67 @@ onMounted(load);
                         <div
                             v-for="l in gr.lines ?? []"
                             :key="l.id"
-                            class="flex items-start justify-between gap-4 rounded-md border px-3 py-2"
+                            class="flex flex-col gap-2 rounded-md border px-3 py-2"
+                            :class="[
+                                l.item?.is_serialized
+                                    ? 'border-blue-200 bg-blue-50/30 dark:border-blue-800 dark:bg-blue-950/20'
+                                    : '',
+                            ]"
                         >
-                            <div>
-                                <div class="text-sm font-medium">
-                                    {{ l.item?.sku ?? l.item_id }} —
-                                    {{ l.item?.name ?? '' }}
+                            <div class="flex items-start justify-between gap-4">
+                                <div class="flex-1">
+                                    <div class="flex items-center gap-2">
+                                        <div class="text-sm font-medium">
+                                            {{ l.item?.sku ?? l.item_id }} —
+                                            {{ l.item?.name ?? '' }}
+                                        </div>
+                                        <span
+                                            v-if="l.item?.is_serialized"
+                                            class="inline-flex items-center rounded-full bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-800 dark:bg-blue-900/50 dark:text-blue-200"
+                                        >
+                                            Serialized
+                                        </span>
+                                    </div>
+                                    <div class="text-xs text-muted-foreground">
+                                        Ordered:
+                                        {{ formatQty(l.ordered_quantity) }} —
+                                        Received:
+                                        {{ formatQty(l.received_quantity) }}
+                                        {{ l.uom?.code ?? '' }}
+                                    </div>
+                                    <div
+                                        v-if="l.remarks"
+                                        class="text-xs text-muted-foreground"
+                                    >
+                                        Notes: {{ l.remarks }}
+                                    </div>
                                 </div>
-                                <div class="text-xs text-muted-foreground">
-                                    Ordered:
-                                    {{ formatQty(l.ordered_quantity) }} —
-                                    Received:
-                                    {{ formatQty(l.received_quantity) }}
-                                    {{ l.uom?.code ?? '' }}
-                                </div>
+                            </div>
+
+                            <!-- Serial Numbers Display -->
+                            <div
+                                v-if="
+                                    l.item?.is_serialized &&
+                                    l.serial_numbers &&
+                                    l.serial_numbers.length > 0
+                                "
+                                class="mt-2 border-t pt-2"
+                            >
                                 <div
-                                    v-if="l.remarks"
-                                    class="text-xs text-muted-foreground"
+                                    class="mb-2 text-xs font-medium text-muted-foreground"
                                 >
-                                    Notes: {{ l.remarks }}
+                                    Serial Numbers ({{
+                                        l.serial_numbers.length
+                                    }})
+                                </div>
+                                <div class="flex flex-wrap gap-2">
+                                    <div
+                                        v-for="serial in l.serial_numbers"
+                                        :key="serial.id"
+                                        class="inline-flex items-center rounded-md border border-primary/20 bg-primary/10 px-2.5 py-1 font-mono text-xs text-primary"
+                                    >
+                                        {{ serial.serial_number }}
+                                    </div>
                                 </div>
                             </div>
                         </div>

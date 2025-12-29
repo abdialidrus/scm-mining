@@ -4,6 +4,7 @@ export type ItemDto = {
     id: number;
     sku: string;
     name: string;
+    is_serialized?: boolean;
     base_uom_id: number | null;
     base_uom_code: string | null;
     base_uom_name: string | null;

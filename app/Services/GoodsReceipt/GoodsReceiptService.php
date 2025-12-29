@@ -308,7 +308,7 @@ class GoodsReceiptService
     }
 
     /**
-     * @param array<int,array{purchase_order_line_id:int,received_quantity:numeric,remarks?:string|null}> $incomingLines
+     * @param array<int,array{purchase_order_line_id:int,received_quantity:numeric,remarks?:string|null,serial_numbers?:array<string>}> $incomingLines
      */
     private function syncLinesFromPo(GoodsReceipt $gr, PurchaseOrder $po, array $incomingLines): void
     {
@@ -317,13 +317,21 @@ class GoodsReceiptService
         $poLines = $po->lines->keyBy('id');
         $lineNo = 1;
 
+        // Get RECEIVING location for the warehouse
+        $receivingLocation = WarehouseLocation::query()
+            ->where('warehouse_id', $gr->warehouse_id)
+            ->where('type', WarehouseLocation::TYPE_RECEIVING)
+            ->where('is_default', true)
+            ->where('is_active', true)
+            ->first();
+
         foreach ($incomingLines as $line) {
             $poLineId = (int) $line['purchase_order_line_id'];
 
             /** @var PurchaseOrderLine $pol */
             $pol = $poLines->get($poLineId);
 
-            $gr->lines()->create([
+            $grLine = $gr->lines()->create([
                 'line_no' => $lineNo++,
                 'purchase_order_line_id' => $pol->id,
                 'item_id' => $pol->item_id,
@@ -334,6 +342,27 @@ class GoodsReceiptService
                 'uom_snapshot' => $pol->uom_snapshot,
                 'remarks' => Arr::get($line, 'remarks'),
             ]);
+
+            // If item is serialized and serial numbers provided, create serial number records
+            $item = $pol->item;
+            $serialNumbers = $line['serial_numbers'] ?? [];
+
+            if ($item && $item->is_serialized && is_array($serialNumbers) && count($serialNumbers) > 0) {
+                foreach ($serialNumbers as $serialNumber) {
+                    if (empty(trim($serialNumber))) {
+                        continue;
+                    }
+
+                    \App\Models\ItemSerialNumber::query()->create([
+                        'item_id' => $item->id,
+                        'serial_number' => trim($serialNumber),
+                        'status' => \App\Models\ItemSerialNumber::STATUS_AVAILABLE,
+                        'current_location_id' => $receivingLocation?->id,
+                        'received_at' => $gr->received_at,
+                        'goods_receipt_line_id' => $grLine->id,
+                    ]);
+                }
+            }
         }
     }
 

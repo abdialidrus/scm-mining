@@ -4,6 +4,7 @@ use App\Http\Controllers\Api\ApprovalWorkflowController;
 use App\Http\Controllers\Api\DepartmentController;
 use App\Http\Controllers\Api\GoodsReceiptController;
 use App\Http\Controllers\Api\ItemController;
+use App\Http\Controllers\Api\ItemSerialNumberController;
 use App\Http\Controllers\Api\PickingOrderController;
 use App\Http\Controllers\Api\PurchaseOrderController;
 use App\Http\Controllers\Api\PurchaseRequestController;
@@ -82,6 +83,11 @@ Route::middleware('auth:sanctum')->group(function () {
 
         Route::post('/{pickingOrder}/post', [PickingOrderController::class, 'post']);
         Route::post('/{pickingOrder}/cancel', [PickingOrderController::class, 'cancel']);
+    });
+
+    Route::prefix('stock/serial-numbers')->group(function () {
+        Route::get('/', [ItemSerialNumberController::class, 'available']);
+        Route::get('/{serialNumber}', [ItemSerialNumberController::class, 'show']);
     });
 
     Route::get('/roles', [RoleController::class, 'index']);

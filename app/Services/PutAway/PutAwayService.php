@@ -289,6 +289,24 @@ class PutAwayService
                         'goods_receipt_line_id' => (int) $line->goods_receipt_line_id,
                     ],
                 ]);
+
+                // Update serial numbers location if item is serialized
+                $item = $line->item;
+                if ($item && $item->is_serialized) {
+                    // Get serial numbers for this GR line that are still in RECEIVING
+                    $serialNumbers = \App\Models\ItemSerialNumber::query()
+                        ->where('item_id', $line->item_id)
+                        ->where('goods_receipt_line_id', $line->goods_receipt_line_id)
+                        ->where('current_location_id', $receivingLocationId)
+                        ->where('status', \App\Models\ItemSerialNumber::STATUS_AVAILABLE)
+                        ->limit((int) $line->qty)
+                        ->get();
+
+                    foreach ($serialNumbers as $serial) {
+                        $serial->current_location_id = $line->destination_location_id;
+                        $serial->save();
+                    }
+                }
             }
 
             $this->recordStatusHistory($putAway, $from, $putAway->status, 'post', $actor);

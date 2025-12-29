@@ -40,13 +40,19 @@ const isProcurement = user?.roles?.some(
 const isFinance = user?.roles?.some((role: any) => role.name === 'finance');
 const isWarehouse = user?.roles?.some((role: any) => role.name === 'warehouse');
 const isRequestor = user?.roles?.some((role: any) => role.name === 'requester');
+const isDeptHead = user?.roles?.some((role: any) => role.name === 'dept_head');
 const isGm = user?.roles?.some((role: any) => role.name === 'gm');
 const isDirector = user?.roles?.some((role: any) => role.name === 'director');
 
 const canShowMasterData = isSuperAdmin || isProcurement;
 
 const canShowPurchaseRequests =
-    isSuperAdmin || isProcurement || isRequestor || isGm || isDirector;
+    isSuperAdmin ||
+    isDeptHead ||
+    isProcurement ||
+    isRequestor ||
+    isGm ||
+    isDirector;
 
 const canShowPurchaseOrders =
     isSuperAdmin || isProcurement || isFinance || isGm || isDirector;

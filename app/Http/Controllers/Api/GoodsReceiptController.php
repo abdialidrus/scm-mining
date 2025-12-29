@@ -147,6 +147,7 @@ class GoodsReceiptController extends Controller
                 'warehouse',
                 'lines.item',
                 'lines.uom',
+                'lines.serialNumbers',
                 'statusHistories.actor',
                 'postedBy',
             ]),

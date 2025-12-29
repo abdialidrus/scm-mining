@@ -13,6 +13,10 @@ import {
     type WarehouseDto,
 } from '@/services/masterDataApi';
 import { createPickingOrder } from '@/services/pickingOrderApi';
+import {
+    getAvailableSerialNumbers,
+    type ItemSerialNumberDto,
+} from '@/services/serialNumberApi';
 import { BreadcrumbItem } from '@/types';
 import { Head, Link, router } from '@inertiajs/vue3';
 import { computed, onMounted, reactive, ref } from 'vue';
@@ -59,6 +63,8 @@ const lines = ref<
         __item?: ItemDto;
         __uom?: UomDto;
         __availableStock?: number;
+        __availableSerials?: ItemSerialNumberDto[];
+        __selectedSerials?: ItemSerialNumberDto[];
     }>
 >([]);
 
@@ -119,17 +125,32 @@ async function checkStock(lineIdx: number) {
     const line = lines.value[lineIdx];
     if (!line.item_id || !line.source_location_id) {
         line.__availableStock = undefined;
+        line.__availableSerials = undefined;
         return;
     }
 
     try {
-        // Call stock query service to get available stock
-        const res = await apiFetch<{ data: { qty_on_hand: number } }>(
-            `/api/stock/location/${line.source_location_id}/item/${line.item_id}${line.uom_id ? `?uom_id=${line.uom_id}` : ''}`,
-        );
-        line.__availableStock = res.data.qty_on_hand;
+        // Check if item is serialized
+        if (line.__item?.is_serialized) {
+            // Fetch available serial numbers
+            const res = await getAvailableSerialNumbers({
+                item_id: line.item_id,
+                location_id: line.source_location_id,
+                status: 'AVAILABLE',
+            });
+            line.__availableSerials = res.data;
+            line.__availableStock = res.data.length;
+        } else {
+            // Original logic: fetch qty on hand for non-serialized items
+            const res = await apiFetch<{ data: { qty_on_hand: number } }>(
+                `/api/stock/location/${line.source_location_id}/item/${line.item_id}${line.uom_id ? `?uom_id=${line.uom_id}` : ''}`,
+            );
+            line.__availableStock = res.data.qty_on_hand;
+            line.__availableSerials = undefined;
+        }
     } catch (e) {
         line.__availableStock = 0;
+        line.__availableSerials = undefined;
     }
 }
 
@@ -141,6 +162,8 @@ function addLine() {
         qty: 0,
         remarks: '',
         __availableStock: undefined,
+        __availableSerials: undefined,
+        __selectedSerials: undefined,
     });
 }
 
@@ -154,6 +177,8 @@ async function onChangeWarehouse() {
     lines.value.forEach((line) => {
         line.source_location_id = null;
         line.__availableStock = undefined;
+        line.__availableSerials = undefined;
+        line.__selectedSerials = undefined;
     });
 
     if (form.warehouse_id) {
@@ -168,6 +193,8 @@ async function onSelectItem(lineIdx: number, item: ItemDto | null) {
     line.uom_id = item?.base_uom_id ?? null;
     // Note: base_uom relation might not be loaded, skip for now
     line.__availableStock = undefined;
+    line.__availableSerials = undefined;
+    line.__selectedSerials = undefined;
 
     if (line.item_id && line.source_location_id) {
         await checkStock(lineIdx);
@@ -176,6 +203,13 @@ async function onSelectItem(lineIdx: number, item: ItemDto | null) {
 
 async function onSelectLocation(lineIdx: number) {
     await checkStock(lineIdx);
+}
+
+function onSelectSerials(lineIdx: number, serials: ItemSerialNumberDto[]) {
+    const line = lines.value[lineIdx];
+    line.__selectedSerials = serials;
+    // Auto-calculate qty from selected serial numbers
+    line.qty = serials.length;
 }
 
 async function save() {
@@ -202,13 +236,24 @@ async function save() {
             purpose: form.purpose || null,
             picked_at: form.picked_at || null,
             remarks: form.remarks || null,
-            lines: lines.value.map((line) => ({
-                item_id: line.item_id!,
-                uom_id: line.uom_id,
-                source_location_id: line.source_location_id!,
-                qty: line.qty,
-                remarks: line.remarks || null,
-            })),
+            lines: lines.value.map((line) => {
+                const linePayload: any = {
+                    item_id: line.item_id!,
+                    uom_id: line.uom_id,
+                    source_location_id: line.source_location_id!,
+                    qty: line.qty,
+                    remarks: line.remarks || null,
+                };
+
+                // If item is serialized, include serial numbers
+                if (line.__item?.is_serialized && line.__selectedSerials) {
+                    linePayload.serial_numbers = line.__selectedSerials.map(
+                        (s) => s.serial_number,
+                    );
+                }
+
+                return linePayload;
+            }),
         };
 
         const res = await createPickingOrder(payload);
@@ -476,8 +521,11 @@ onMounted(load);
                                 </div>
                             </div>
 
-                            <!-- Qty to Pick -->
-                            <div class="md:col-span-2">
+                            <!-- Qty to Pick OR Serial Number Selection -->
+                            <div
+                                v-if="!line.__item?.is_serialized"
+                                class="md:col-span-2"
+                            >
                                 <label class="text-sm font-medium">
                                     Qty to Pick *
                                 </label>
@@ -492,6 +540,41 @@ onMounted(load);
                                         required
                                     />
                                 </div>
+                                <p
+                                    v-if="lineError(idx, 'qty')"
+                                    class="mt-1 text-xs text-destructive"
+                                >
+                                    {{ lineError(idx, 'qty')[0] }}
+                                </p>
+                            </div>
+
+                            <!-- Serial Number Selection for Serialized Items -->
+                            <div v-else class="md:col-span-2">
+                                <label class="text-sm font-medium">
+                                    Serial Numbers *
+                                </label>
+                                <div class="mt-1">
+                                    <Multiselect
+                                        :model-value="
+                                            line.__selectedSerials ?? []
+                                        "
+                                        @update:model-value="
+                                            (v: any) => onSelectSerials(idx, v)
+                                        "
+                                        :options="line.__availableSerials ?? []"
+                                        track-by="id"
+                                        label="serial_number"
+                                        placeholder="Select serial numbers"
+                                        multiple
+                                        :close-on-select="false"
+                                        :clear-on-select="false"
+                                        class="w-full"
+                                    />
+                                </div>
+                                <p class="mt-1 text-xs text-muted-foreground">
+                                    {{ line.__selectedSerials?.length ?? 0 }}
+                                    unit(s) selected
+                                </p>
                                 <p
                                     v-if="lineError(idx, 'qty')"
                                     class="mt-1 text-xs text-destructive"

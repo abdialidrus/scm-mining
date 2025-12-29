@@ -49,6 +49,7 @@ const form = reactive({
         purchase_order_line_id: number;
         received_quantity: number;
         remarks: string;
+        serial_numbers?: string[];
     }>,
 });
 
@@ -86,7 +87,78 @@ async function loadPo(poId: number) {
         purchase_order_line_id: l.id,
         received_quantity: 0,
         remarks: '',
+        serial_numbers: [],
     }));
+}
+
+function getPoLine(poLineId: number) {
+    return (po.value?.lines ?? []).find((x) => x.id === poLineId);
+}
+
+function isSerializedItem(poLineId: number): boolean {
+    const line = getPoLine(poLineId);
+    return (line?.item as any)?.is_serialized === true;
+}
+
+function onSerialNumbersChange(idx: number, value: string) {
+    const line = form.lines[idx];
+    // Split by newline or comma, trim, and filter empty
+    const serials = value
+        .split(/[\n,]+/)
+        .map((s) => s.trim())
+        .filter((s) => s.length > 0);
+
+    // Remove duplicates
+    const uniqueSerials = Array.from(new Set(serials));
+
+    line.serial_numbers = uniqueSerials;
+    // Auto-update quantity based on serial numbers count
+    line.received_quantity = uniqueSerials.length;
+
+    // Show warning if duplicates found
+    if (uniqueSerials.length !== serials.length) {
+        console.warn(
+            `Removed ${serials.length - uniqueSerials.length} duplicate serial number(s)`,
+        );
+    }
+}
+
+// New approach: Add serial number one by one
+const serialInputs = ref<Record<number, string>>({});
+
+function addSerialNumber(idx: number) {
+    const input = serialInputs.value[idx]?.trim();
+    if (!input) return;
+
+    const line = form.lines[idx];
+    const serials = line.serial_numbers || [];
+
+    // Check for duplicates
+    if (serials.includes(input)) {
+        alert('Serial number already added');
+        return;
+    }
+
+    line.serial_numbers = [...serials, input];
+    line.received_quantity = line.serial_numbers.length;
+
+    // Clear input
+    serialInputs.value[idx] = '';
+}
+
+function removeSerialNumber(idx: number, serial: string) {
+    const line = form.lines[idx];
+    line.serial_numbers = (line.serial_numbers || []).filter(
+        (s) => s !== serial,
+    );
+    line.received_quantity = line.serial_numbers.length;
+}
+
+function handleSerialKeydown(idx: number, e: KeyboardEvent) {
+    if (e.key === 'Enter') {
+        e.preventDefault();
+        addSerialNumber(idx);
+    }
 }
 
 async function loadPOs() {
@@ -135,11 +207,24 @@ async function save() {
             remarks: form.remarks || null,
             lines: form.lines
                 .filter((l) => Number(l.received_quantity) > 0)
-                .map((l) => ({
-                    purchase_order_line_id: l.purchase_order_line_id,
-                    received_quantity: Number(l.received_quantity),
-                    remarks: l.remarks || null,
-                })),
+                .map((l) => {
+                    const linePayload: any = {
+                        purchase_order_line_id: l.purchase_order_line_id,
+                        received_quantity: Number(l.received_quantity),
+                        remarks: l.remarks || null,
+                    };
+
+                    // Include serial numbers for serialized items
+                    if (
+                        isSerializedItem(l.purchase_order_line_id) &&
+                        l.serial_numbers &&
+                        l.serial_numbers.length > 0
+                    ) {
+                        linePayload.serial_numbers = l.serial_numbers;
+                    }
+
+                    return linePayload;
+                }),
         };
 
         const res = await createGoodsReceipt(payload);
@@ -270,24 +355,41 @@ onMounted(load);
                             v-for="(l, idx) in form.lines"
                             :key="l.purchase_order_line_id"
                             class="grid gap-2 rounded-md border p-3 md:grid-cols-12"
+                            :class="[
+                                isSerializedItem(l.purchase_order_line_id)
+                                    ? 'border-blue-200 bg-blue-50/30 dark:border-blue-800 dark:bg-blue-950/20'
+                                    : '',
+                            ]"
                         >
                             <div class="md:col-span-5">
-                                <div class="text-sm font-medium">
-                                    {{
-                                        (po.lines ?? []).find(
-                                            (x) =>
-                                                x.id ===
+                                <div class="flex items-center gap-2">
+                                    <div class="text-sm font-medium">
+                                        {{
+                                            (po.lines ?? []).find(
+                                                (x) =>
+                                                    x.id ===
+                                                    l.purchase_order_line_id,
+                                            )?.item?.sku ?? 'Item'
+                                        }}
+                                        —
+                                        {{
+                                            (po.lines ?? []).find(
+                                                (x) =>
+                                                    x.id ===
+                                                    l.purchase_order_line_id,
+                                            )?.item?.name ?? ''
+                                        }}
+                                    </div>
+                                    <span
+                                        v-if="
+                                            isSerializedItem(
                                                 l.purchase_order_line_id,
-                                        )?.item?.sku ?? 'Item'
-                                    }}
-                                    —
-                                    {{
-                                        (po.lines ?? []).find(
-                                            (x) =>
-                                                x.id ===
-                                                l.purchase_order_line_id,
-                                        )?.item?.name ?? ''
-                                    }}
+                                            )
+                                        "
+                                        class="inline-flex items-center rounded-full bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-800 dark:bg-blue-900/50 dark:text-blue-200"
+                                    >
+                                        Serialized
+                                    </span>
                                 </div>
                                 <div class="text-xs text-muted-foreground">
                                     Ordered:
@@ -310,32 +412,167 @@ onMounted(load);
                                 </div>
                             </div>
 
-                            <div class="md:col-span-3">
+                            <!-- Non-Serialized: Qty Input -->
+                            <div
+                                v-if="
+                                    !isSerializedItem(l.purchase_order_line_id)
+                                "
+                                class="md:col-span-3"
+                            >
                                 <label class="text-xs font-medium"
                                     >Receive Qty</label
                                 >
                                 <Input
                                     v-model.number="l.received_quantity"
                                     type="number"
+                                    step="0.001"
+                                    min="0"
+                                    placeholder="0"
                                 />
-                                <div
+                                <p
                                     v-if="lineError(idx, 'received_quantity')"
                                     class="mt-1 text-xs text-destructive"
                                 >
-                                    {{
-                                        lineError(
-                                            idx,
-                                            'received_quantity',
-                                        )!.join(', ')
-                                    }}
+                                    {{ lineError(idx, 'received_quantity')[0] }}
+                                </p>
+                            </div>
+
+                            <!-- Serialized: Serial Numbers Input -->
+                            <div v-else class="md:col-span-7">
+                                <label class="text-xs font-medium"
+                                    >Serial Numbers *</label
+                                >
+                                <div class="mt-1 space-y-2">
+                                    <!-- Input field with Add button -->
+                                    <div class="flex gap-2">
+                                        <Input
+                                            v-model="serialInputs[idx]"
+                                            placeholder="Enter serial number and press Enter or click Add"
+                                            class="font-mono"
+                                            @keydown="
+                                                (e: any) =>
+                                                    handleSerialKeydown(idx, e)
+                                            "
+                                        />
+                                        <Button
+                                            type="button"
+                                            size="sm"
+                                            variant="outline"
+                                            @click="addSerialNumber(idx)"
+                                        >
+                                            Add
+                                        </Button>
+                                    </div>
+
+                                    <!-- List of added serial numbers as tags -->
+                                    <div
+                                        v-if="
+                                            l.serial_numbers &&
+                                            l.serial_numbers.length > 0
+                                        "
+                                        class="flex min-h-20 flex-wrap gap-2 rounded-md border border-input bg-muted/20 p-3"
+                                    >
+                                        <div
+                                            v-for="serial in l.serial_numbers"
+                                            :key="serial"
+                                            class="inline-flex items-center gap-1 rounded-md border border-primary/20 bg-primary/10 px-2.5 py-1 font-mono text-sm text-primary"
+                                        >
+                                            <span>{{ serial }}</span>
+                                            <button
+                                                type="button"
+                                                @click="
+                                                    removeSerialNumber(
+                                                        idx,
+                                                        serial,
+                                                    )
+                                                "
+                                                class="ml-1 hover:text-destructive"
+                                            >
+                                                <svg
+                                                    xmlns="http://www.w3.org/2000/svg"
+                                                    width="14"
+                                                    height="14"
+                                                    viewBox="0 0 24 24"
+                                                    fill="none"
+                                                    stroke="currentColor"
+                                                    stroke-width="2"
+                                                    stroke-linecap="round"
+                                                    stroke-linejoin="round"
+                                                >
+                                                    <path
+                                                        d="M18 6 6 18M6 6l12 12"
+                                                    />
+                                                </svg>
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <div
+                                        v-else
+                                        class="flex min-h-20 items-center justify-center rounded-md border border-dashed border-input bg-muted/20 p-4 text-center text-sm text-muted-foreground"
+                                    >
+                                        No serial numbers added yet. Enter a
+                                        serial number above.
+                                    </div>
+
+                                    <!-- Counter -->
+                                    <div
+                                        class="flex items-center justify-between text-xs"
+                                    >
+                                        <span class="text-muted-foreground">
+                                            <span
+                                                :class="[
+                                                    'font-semibold',
+                                                    (l.serial_numbers?.length ||
+                                                        0) > 0
+                                                        ? 'text-green-600 dark:text-green-400'
+                                                        : 'text-muted-foreground',
+                                                ]"
+                                            >
+                                                {{
+                                                    l.serial_numbers?.length ||
+                                                    0
+                                                }}
+                                            </span>
+                                            serial number(s) added
+                                        </span>
+                                        <span class="text-muted-foreground">
+                                            Qty:
+                                            <span class="font-semibold">{{
+                                                l.received_quantity
+                                            }}</span>
+                                        </span>
+                                    </div>
+                                    <p
+                                        v-if="
+                                            lineError(idx, 'received_quantity')
+                                        "
+                                        class="text-xs text-destructive"
+                                    >
+                                        {{
+                                            lineError(
+                                                idx,
+                                                'received_quantity',
+                                            )[0]
+                                        }}
+                                    </p>
                                 </div>
                             </div>
 
-                            <div class="md:col-span-4">
+                            <!-- Remarks field (for both serialized and non-serialized) -->
+                            <div
+                                :class="[
+                                    isSerializedItem(l.purchase_order_line_id)
+                                        ? 'md:col-span-12'
+                                        : 'md:col-span-4',
+                                ]"
+                            >
                                 <label class="text-xs font-medium"
                                     >Remarks</label
                                 >
-                                <Input v-model="l.remarks" />
+                                <Input
+                                    v-model="l.remarks"
+                                    placeholder="Optional remarks"
+                                />
                             </div>
                         </div>
                     </div>
