@@ -196,14 +196,28 @@ async function load() {
             await loadPo(gr.purchase_order_id);
 
             // Populate lines with existing data
-            form.lines = gr.lines.map((grLine) => ({
-                purchase_order_line_id: grLine.purchase_order_line_id,
-                received_quantity: grLine.received_quantity,
-                remarks: grLine.remarks || '',
-                serial_numbers: grLine.item_snapshot?.is_serialized
-                    ? grLine.serial_numbers?.map((s) => s.serial_number) || []
-                    : [],
-            }));
+            form.lines = (gr.lines ?? []).map((grLine: any) => {
+                let serialNumbers: string[] = [];
+
+                if (
+                    grLine.item_snapshot?.is_serialized &&
+                    grLine.serial_numbers
+                ) {
+                    // Handle both formats: array of strings or array of objects
+                    if (Array.isArray(grLine.serial_numbers)) {
+                        serialNumbers = grLine.serial_numbers.map((s: any) =>
+                            typeof s === 'string' ? s : s.serial_number,
+                        );
+                    }
+                }
+
+                return {
+                    purchase_order_line_id: grLine.purchase_order_line_id,
+                    received_quantity: grLine.received_quantity,
+                    remarks: grLine.remarks || '',
+                    serial_numbers: serialNumbers,
+                };
+            });
         } else {
             // Create mode
             await loadPOs();

@@ -8,9 +8,15 @@ export type PickingOrderLineDto = {
     source_location_id: number;
     qty: number;
     remarks?: string | null;
-    item?: { id: number; sku: string; name: string } | null;
+    serial_numbers?: string[] | null;
+    item?: {
+        id: number;
+        sku: string;
+        name: string;
+        is_serialized?: boolean;
+    } | null;
     uom?: { id: number; code: string; name: string } | null;
-    sourceLocation?: { id: number; code: string; name: string } | null;
+    source_location?: { id: number; code: string; name: string } | null;
 };
 
 export type PickingOrderStatusHistoryDto = {

@@ -2,6 +2,8 @@
 
 namespace App\Services\PickingOrder;
 
+use App\Models\Item;
+use App\Models\ItemSerialNumber;
 use App\Models\PickingOrder;
 use App\Models\PickingOrderLine;
 use App\Models\PickingOrderStatusHistory;
@@ -188,6 +190,33 @@ class PickingOrderService
                         'purpose' => $pickingOrder->purpose,
                     ],
                 ]);
+
+                // Update serial numbers for serialized items
+                $item = Item::find($line->item_id);
+                if ($item && $item->is_serialized) {
+                    $qty = (int) $line->qty;
+
+                    // Get available serial numbers from the source location
+                    $serialNumbers = ItemSerialNumber::where('item_id', $item->id)
+                        ->where('current_location_id', $line->source_location_id)
+                        ->where('status', ItemSerialNumber::STATUS_AVAILABLE)
+                        ->whereNull('picking_order_line_id')
+                        ->limit($qty)
+                        ->get();
+
+                    if ($serialNumbers->count() < $qty) {
+                        throw ValidationException::withMessages([
+                            'serial_numbers' => "Insufficient available serial numbers for item: {$item->name} at location. Required: {$qty}, Available: {$serialNumbers->count()}",
+                        ]);
+                    }
+
+                    // Update serial numbers with picking_order_line_id and set status to PICKED
+                    foreach ($serialNumbers as $sn) {
+                        $sn->picking_order_line_id = $line->id;
+                        $sn->status = ItemSerialNumber::STATUS_PICKED;
+                        $sn->save();
+                    }
+                }
             }
 
             return $this->loadForShow($pickingOrder);

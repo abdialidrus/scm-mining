@@ -269,19 +269,53 @@ onMounted(load);
                                     :key="line.id"
                                 >
                                     <TableCell>
-                                        <div class="font-medium">
-                                            {{ line.item?.sku ?? 'Item' }}
+                                        <div class="flex items-center gap-2">
+                                            <div>
+                                                <div class="font-medium">
+                                                    {{
+                                                        line.item?.sku ?? 'Item'
+                                                    }}
+                                                </div>
+                                                <div
+                                                    class="text-xs text-muted-foreground"
+                                                >
+                                                    {{ line.item?.name ?? '' }}
+                                                </div>
+                                            </div>
+                                            <span
+                                                v-if="
+                                                    (line.item as any)
+                                                        ?.is_serialized
+                                                "
+                                                class="inline-flex items-center rounded-full bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-800 dark:bg-blue-900/50 dark:text-blue-200"
+                                            >
+                                                Serialized
+                                            </span>
                                         </div>
+
+                                        <!-- Serial Numbers -->
                                         <div
-                                            class="text-xs text-muted-foreground"
+                                            v-if="
+                                                (line.item as any)
+                                                    ?.is_serialized &&
+                                                line.serial_numbers &&
+                                                line.serial_numbers.length > 0
+                                            "
+                                            class="mt-2 flex flex-wrap gap-1.5"
                                         >
-                                            {{ line.item?.name ?? '' }}
+                                            <span
+                                                v-for="serial in line.serial_numbers"
+                                                :key="serial"
+                                                class="inline-flex items-center rounded-md border border-primary/20 bg-primary/10 px-2 py-0.5 font-mono text-xs text-primary"
+                                            >
+                                                {{ serial }}
+                                            </span>
                                         </div>
                                     </TableCell>
                                     <TableCell>
                                         {{
-                                            line.sourceLocation
-                                                ? `${line.sourceLocation.code} — ${line.sourceLocation.name}`
+                                            line.source_location
+                                                ? `${line.source_location.code} — ${line.source_location.name}`
                                                 : '-'
                                         }}
                                     </TableCell>
