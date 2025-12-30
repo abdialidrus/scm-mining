@@ -17,4 +17,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
             'purchaseOrderId' => $purchaseOrderId,
         ]);
     })->name('purchase-orders.show');
+
+    Route::get('/purchase-orders/{purchaseOrder}/export-pdf', [
+        \App\Http\Controllers\Api\PurchaseOrderController::class,
+        'exportPdf'
+    ])->name('purchase-orders.export-pdf');
 });

@@ -11,6 +11,7 @@ use App\Http\Requests\Api\PurchaseOrder\UpdatePurchaseOrderDraftRequest;
 use App\Models\PurchaseOrder;
 use App\Services\Approval\ApprovalWorkflowService;
 use App\Services\PurchaseOrder\PurchaseOrderService;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -71,6 +72,28 @@ class PurchaseOrderController extends Controller
                 'approvals.rejectedBy',
             ]),
         ]);
+    }
+
+    public function exportPdf(PurchaseOrder $purchaseOrder)
+    {
+        $this->authorize('view', $purchaseOrder);
+
+        $po = $purchaseOrder->load([
+            'supplier',
+            'lines.item',
+            'lines.uom',
+            'submittedBy',
+            'approvedBy',
+        ]);
+
+        $filename = 'PO-' . $po->po_number . '-' . now()->format('Ymd') . '.pdf';
+
+        $pdf = Pdf::loadView('pdf.purchase-order', ['po' => $po]);
+        $pdf->setPaper('a4', 'portrait');
+
+        return response($pdf->output())
+            ->header('Content-Type', 'application/pdf')
+            ->header('Content-Disposition', 'attachment; filename="' . $filename . '"');
     }
 
     public function approvals(PurchaseOrder $purchaseOrder): JsonResponse

@@ -230,6 +230,25 @@ onMounted(load);
                         <Link href="/purchase-orders">Back</Link>
                     </Button>
 
+                    <!-- Export PDF Button -->
+                    <Button
+                        v-if="
+                            po &&
+                            po.status !== 'DRAFT' &&
+                            po.status !== 'CANCELLED'
+                        "
+                        variant="outline"
+                        as-child
+                    >
+                        <a
+                            :href="`/purchase-orders/${po.id}/export-pdf`"
+                            download
+                            target="_blank"
+                        >
+                            Export PDF
+                        </a>
+                    </Button>
+
                     <Button
                         v-if="po?.status === 'DRAFT' && !editingDraft"
                         variant="outline"

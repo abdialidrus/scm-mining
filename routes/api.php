@@ -63,6 +63,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/', [PurchaseOrderController::class, 'index']);
         Route::post('/', [PurchaseOrderController::class, 'store']);
         Route::get('/{purchaseOrder}', [PurchaseOrderController::class, 'show']);
+        Route::get('/{purchaseOrder}/export-pdf', [PurchaseOrderController::class, 'exportPdf']);
         Route::get('/{purchaseOrder}/approvals', [PurchaseOrderController::class, 'approvals']);
         Route::put('/{purchaseOrder}', [PurchaseOrderController::class, 'updateDraft']);
         Route::post('/{purchaseOrder}/reopen', [PurchaseOrderController::class, 'reopen']);
