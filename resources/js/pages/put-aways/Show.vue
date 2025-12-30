@@ -252,14 +252,14 @@ onMounted(load);
                                     <div class="text-xs text-muted-foreground">
                                         From:
                                         {{
-                                            l.sourceLocation
-                                                ? `${l.sourceLocation.code} — ${l.sourceLocation.name}`
+                                            l.source_location
+                                                ? `${l.source_location.code} — ${l.source_location.name}`
                                                 : l.source_location_id
                                         }}
                                         → To:
                                         {{
-                                            l.destinationLocation
-                                                ? `${l.destinationLocation.code} — ${l.destinationLocation.name}`
+                                            l.destination_location
+                                                ? `${l.destination_location.code} — ${l.destination_location.name}`
                                                 : l.destination_location_id
                                         }}
                                     </div>

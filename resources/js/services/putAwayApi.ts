@@ -11,8 +11,8 @@ export type PutAwayLineDto = {
     remarks?: string | null;
     item?: { id: number; sku: string; name: string } | null;
     uom?: { id: number; code: string; name: string } | null;
-    sourceLocation?: { id: number; code: string; name: string } | null;
-    destinationLocation?: { id: number; code: string; name: string } | null;
+    source_location?: { id: number; code: string; name: string } | null;
+    destination_location?: { id: number; code: string; name: string } | null;
 };
 
 export type PutAwayStatusHistoryDto = {
