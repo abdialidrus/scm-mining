@@ -80,6 +80,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/eligible-for-put-away', [GoodsReceiptController::class, 'eligibleForPutAway']);
         Route::post('/', [GoodsReceiptController::class, 'store']);
         Route::get('/{goodsReceipt}', [GoodsReceiptController::class, 'show']);
+        Route::put('/{goodsReceipt}', [GoodsReceiptController::class, 'update']);
         Route::get('/{goodsReceipt}/put-away-summary', [GoodsReceiptController::class, 'putAwaySummary']);
 
         Route::post('/{goodsReceipt}/post', [GoodsReceiptController::class, 'post']);

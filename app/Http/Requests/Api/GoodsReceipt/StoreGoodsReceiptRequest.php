@@ -23,6 +23,8 @@ class StoreGoodsReceiptRequest extends FormRequest
             'lines.*.purchase_order_line_id' => ['required', 'integer', 'exists:purchase_order_lines,id'],
             'lines.*.received_quantity' => ['required', 'numeric', 'gt:0'],
             'lines.*.remarks' => ['nullable', 'string'],
+            'lines.*.serial_numbers' => ['nullable', 'array'],
+            'lines.*.serial_numbers.*' => ['required', 'string'],
         ];
     }
 }

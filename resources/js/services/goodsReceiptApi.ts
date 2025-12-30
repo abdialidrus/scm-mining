@@ -102,10 +102,32 @@ export async function createGoodsReceipt(payload: {
         purchase_order_line_id: number;
         received_quantity: number;
         remarks?: string | null;
+        serial_numbers?: string[];
     }>;
 }) {
     return apiFetch<{ data: GoodsReceiptDto }>(`/api/goods-receipts`, {
         method: 'POST',
+        body: JSON.stringify(payload),
+    });
+}
+
+export async function updateGoodsReceipt(
+    id: number,
+    payload: {
+        purchase_order_id?: number;
+        warehouse_id?: number;
+        received_at?: string | null;
+        remarks?: string | null;
+        lines: Array<{
+            purchase_order_line_id: number;
+            received_quantity: number;
+            remarks?: string | null;
+            serial_numbers?: string[];
+        }>;
+    },
+) {
+    return apiFetch<{ data: GoodsReceiptDto }>(`/api/goods-receipts/${id}`, {
+        method: 'PUT',
         body: JSON.stringify(payload),
     });
 }

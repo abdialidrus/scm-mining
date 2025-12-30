@@ -17,6 +17,7 @@ class GoodsReceiptLine extends Model
         'uom_id',
         'ordered_quantity',
         'received_quantity',
+        'serial_numbers',
         'item_snapshot',
         'uom_snapshot',
         'remarks',
@@ -28,6 +29,7 @@ class GoodsReceiptLine extends Model
             'line_no' => 'integer',
             'ordered_quantity' => 'decimal:3',
             'received_quantity' => 'decimal:3',
+            'serial_numbers' => 'array',
             'item_snapshot' => 'array',
             'uom_snapshot' => 'array',
         ];

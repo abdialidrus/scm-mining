@@ -139,6 +139,16 @@ onMounted(load);
 
                     <Button
                         v-if="gr?.status === 'DRAFT'"
+                        variant="outline"
+                        as-child
+                    >
+                        <Link :href="`/goods-receipts/${gr.id}/edit`">
+                            Edit
+                        </Link>
+                    </Button>
+
+                    <Button
+                        v-if="gr?.status === 'DRAFT'"
                         :disabled="acting"
                         type="button"
                         @click="post"

@@ -3,7 +3,11 @@ import Button from '@/components/ui/button/Button.vue';
 import Input from '@/components/ui/input/Input.vue';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { formatQty } from '@/lib/format';
-import { createGoodsReceipt } from '@/services/goodsReceiptApi';
+import {
+    createGoodsReceipt,
+    getGoodsReceipt,
+    updateGoodsReceipt,
+} from '@/services/goodsReceiptApi';
 import { apiFetch } from '@/services/http';
 import { fetchWarehouses, type WarehouseDto } from '@/services/masterDataApi';
 import {
@@ -176,11 +180,34 @@ async function load() {
     error.value = null;
 
     try {
+        await loadWarehouses();
+
         if (isEdit.value) {
-            // MVP: create-only page
-            throw new Error('Edit GR is not supported in MVP');
+            // Load existing GR
+            const grRes = await getGoodsReceipt(props.goodsReceiptId!);
+            const gr = grRes.data;
+
+            // Populate form
+            form.purchase_order_id = gr.purchase_order_id;
+            form.warehouse_id = gr.warehouse_id;
+            form.remarks = gr.remarks || '';
+
+            // Load PO to get lines data
+            await loadPo(gr.purchase_order_id);
+
+            // Populate lines with existing data
+            form.lines = gr.lines.map((grLine) => ({
+                purchase_order_line_id: grLine.purchase_order_line_id,
+                received_quantity: grLine.received_quantity,
+                remarks: grLine.remarks || '',
+                serial_numbers: grLine.item_snapshot?.is_serialized
+                    ? grLine.serial_numbers?.map((s) => s.serial_number) || []
+                    : [],
+            }));
+        } else {
+            // Create mode
+            await loadPOs();
         }
-        await Promise.all([loadWarehouses(), loadPOs()]);
     } catch (e: any) {
         error.value = e?.message ?? 'Failed to load form';
     } finally {
@@ -215,22 +242,33 @@ async function save() {
                     };
 
                     // Include serial numbers for serialized items
-                    if (
-                        isSerializedItem(l.purchase_order_line_id) &&
-                        l.serial_numbers &&
-                        l.serial_numbers.length > 0
-                    ) {
-                        linePayload.serial_numbers = l.serial_numbers;
+                    if (isSerializedItem(l.purchase_order_line_id)) {
+                        linePayload.serial_numbers = l.serial_numbers || [];
                     }
 
                     return linePayload;
                 }),
         };
 
-        const res = await createGoodsReceipt(payload);
-        router.visit(`/goods-receipts/${res.data.id}`);
+        if (isEdit.value) {
+            // Update existing GR
+            const res = await updateGoodsReceipt(
+                props.goodsReceiptId!,
+                payload,
+            );
+            router.visit(`/goods-receipts/${res.data.id}`);
+        } else {
+            // Create new GR
+            const res = await createGoodsReceipt(payload);
+            router.visit(`/goods-receipts/${res.data.id}`);
+        }
     } catch (e: any) {
-        setApiError(e, 'Failed to create goods receipt');
+        setApiError(
+            e,
+            isEdit.value
+                ? 'Failed to update goods receipt'
+                : 'Failed to create goods receipt',
+        );
     } finally {
         saving.value = false;
     }
@@ -242,7 +280,7 @@ const breadcrumbs: BreadcrumbItem[] = [
         href: '/goods-receipts',
     },
     {
-        title: 'Create',
+        title: isEdit.value ? 'Edit' : 'Create',
         href: '#',
     },
 ];
@@ -251,14 +289,16 @@ onMounted(load);
 </script>
 
 <template>
-    <Head title="Create Goods Receipt" />
+    <Head :title="isEdit ? 'Edit Goods Receipt' : 'Create Goods Receipt'" />
 
     <AppLayout :breadcrumbs="breadcrumbs">
         <div
             class="flex h-full flex-1 flex-col gap-4 overflow-x-auto rounded-xl p-4"
         >
             <div class="flex items-center justify-between">
-                <h1 class="text-xl font-semibold">Create Goods Receipt</h1>
+                <h1 class="text-xl font-semibold">
+                    {{ isEdit ? 'Edit' : 'Create' }} Goods Receipt
+                </h1>
                 <Button variant="outline" as-child>
                     <Link href="/goods-receipts">Back</Link>
                 </Button>

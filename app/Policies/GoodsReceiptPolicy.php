@@ -22,6 +22,12 @@ class GoodsReceiptPolicy
         return $user->hasAnyRole(['super_admin', 'warehouse']);
     }
 
+    public function update(User $user, GoodsReceipt $goodsReceipt): bool
+    {
+        return $user->hasAnyRole(['super_admin', 'warehouse'])
+            && $goodsReceipt->status === GoodsReceipt::STATUS_DRAFT;
+    }
+
     public function post(User $user, GoodsReceipt $goodsReceipt): bool
     {
         return $user->hasAnyRole(['super_admin', 'warehouse'])

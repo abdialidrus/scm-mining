@@ -14,6 +14,12 @@ Route::middleware(['auth', 'verified'])->group(function () {
         ]);
     })->name('goods-receipts.create');
 
+    Route::get('/goods-receipts/{goodsReceipt}/edit', function (\App\Models\GoodsReceipt $goodsReceipt) {
+        return Inertia::render('goods-receipts/Form', [
+            'goodsReceiptId' => $goodsReceipt->id,
+        ]);
+    })->name('goods-receipts.edit');
+
     Route::get('/goods-receipts/{goodsReceipt}', function (\App\Models\GoodsReceipt $goodsReceipt) {
         return Inertia::render('goods-receipts/Show', [
             'goodsReceiptId' => $goodsReceipt->id,

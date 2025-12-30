@@ -5,6 +5,8 @@ namespace App\Services\GoodsReceipt;
 use App\Models\GoodsReceipt;
 use App\Models\GoodsReceiptLine;
 use App\Models\GoodsReceiptStatusHistory;
+use App\Models\Item;
+use App\Models\ItemSerialNumber;
 use App\Models\PurchaseOrder;
 use App\Models\PurchaseOrderLine;
 use App\Models\StockMovement;
@@ -141,6 +143,118 @@ class GoodsReceiptService
         });
     }
 
+    /**
+     * @param array{
+     *   received_at?:string|null,
+     *   remarks?:string|null,
+     *   lines:array<int,array{purchase_order_line_id:int,received_quantity:numeric,remarks?:string|null,serial_numbers?:array<string>}>
+     * } $data
+     */
+    public function updateDraft(User $actor, int $goodsReceiptId, array $data): GoodsReceipt
+    {
+        return DB::transaction(function () use ($actor, $goodsReceiptId, $data) {
+            if (!$actor->hasAnyRole(['super_admin', 'warehouse'])) {
+                throw new AuthorizationException('Only warehouse can update Goods Receipt.');
+            }
+
+            /** @var GoodsReceipt $gr */
+            $gr = GoodsReceipt::query()
+                ->lockForUpdate()
+                ->with(['purchaseOrder.lines.item'])
+                ->findOrFail($goodsReceiptId);
+
+            if ($gr->status !== GoodsReceipt::STATUS_DRAFT) {
+                throw ValidationException::withMessages([
+                    'status' => 'Only DRAFT GR can be updated.',
+                ]);
+            }
+
+            $po = $gr->purchaseOrder;
+
+            if (!in_array($po->status, [PurchaseOrder::STATUS_APPROVED, PurchaseOrder::STATUS_SENT, PurchaseOrder::STATUS_CLOSED], true)) {
+                throw ValidationException::withMessages([
+                    'purchase_order_id' => 'PO is not in receivable state.',
+                ]);
+            }
+
+            $incomingLines = $data['lines'] ?? [];
+            if (!is_array($incomingLines) || count($incomingLines) === 0) {
+                throw ValidationException::withMessages([
+                    'lines' => 'At least one receipt line is required.',
+                ]);
+            }
+
+            // Precompute received-to-date per PO line (POSTED only, excludes this draft)
+            $receivedToDate = $this->receivedQtyByPoLine($po->id);
+
+            // Validate incoming lines
+            $poLines = $po->lines->keyBy('id');
+
+            foreach ($incomingLines as $i => $line) {
+                $poLineId = (int) ($line['purchase_order_line_id'] ?? 0);
+                $recvQty = (float) ($line['received_quantity'] ?? 0);
+
+                if ($poLineId <= 0 || !$poLines->has($poLineId)) {
+                    throw ValidationException::withMessages([
+                        "lines.$i.purchase_order_line_id" => 'Invalid PO line for this purchase order.',
+                    ]);
+                }
+
+                if ($recvQty <= 0) {
+                    throw ValidationException::withMessages([
+                        "lines.$i.received_quantity" => 'Received quantity must be > 0.',
+                    ]);
+                }
+
+                /** @var PurchaseOrderLine $pol */
+                $pol = $poLines->get($poLineId);
+
+                $ordered = (float) $pol->quantity;
+                $already = (float) ($receivedToDate[$poLineId] ?? 0);
+
+                if (($already + $recvQty) - $ordered > 1e-9) {
+                    throw ValidationException::withMessages([
+                        "lines.$i.received_quantity" => "Over-receipt is not allowed. Ordered: {$ordered}, already received: {$already}.",
+                    ]);
+                }
+
+                // Validate serial numbers for serialized items
+                $item = $pol->item;
+                if ($item && $item->is_serialized) {
+                    $serialNumbers = $line['serial_numbers'] ?? null;
+
+                    if (!is_array($serialNumbers) || count($serialNumbers) === 0) {
+                        throw ValidationException::withMessages([
+                            "lines.$i.serial_numbers" => "Serial numbers are required for serialized item: {$item->name}.",
+                        ]);
+                    }
+
+                    if (count($serialNumbers) != $recvQty) {
+                        throw ValidationException::withMessages([
+                            "lines.$i.serial_numbers" => "Number of serial numbers must match received quantity for item: {$item->name}.",
+                        ]);
+                    }
+                }
+            }
+
+            // Update header
+            if (isset($data['received_at'])) {
+                $gr->received_at = now()->parse((string) $data['received_at']);
+            }
+            if (isset($data['remarks'])) {
+                $gr->remarks = $data['remarks'];
+            }
+            $gr->save();
+
+            // Update lines
+            $this->syncLinesFromPo($gr, $po, $incomingLines);
+
+            $this->recordStatusHistory($gr, $gr->status, $gr->status, 'update', $actor);
+
+            return $this->loadForShow($gr);
+        });
+    }
+
     public function post(User $actor, int $goodsReceiptId): GoodsReceipt
     {
         return DB::transaction(function () use ($actor, $goodsReceiptId) {
@@ -151,7 +265,7 @@ class GoodsReceiptService
             /** @var GoodsReceipt $gr */
             $gr = GoodsReceipt::query()
                 ->lockForUpdate()
-                ->with(['lines', 'purchaseOrder'])
+                ->with(['lines.item', 'purchaseOrder'])
                 ->findOrFail($goodsReceiptId);
 
             if ($gr->status !== GoodsReceipt::STATUS_DRAFT) {
@@ -242,6 +356,51 @@ class GoodsReceiptService
                         'purchase_order_line_id' => (int) $line->purchase_order_line_id,
                     ],
                 ]);
+
+                // Create serial numbers for serialized items
+                $item = Item::find($line->item_id);
+                if ($item && $item->is_serialized) {
+                    $serialNumbers = $line->serial_numbers ?? null;
+
+                    if (!is_array($serialNumbers) || count($serialNumbers) === 0) {
+                        throw ValidationException::withMessages([
+                            'serial_numbers' => "Serial numbers are required for serialized item: {$item->name} (Line {$line->line_no}). Please cancel this GR and create a new one with serial numbers.",
+                        ]);
+                    }
+
+                    if (count($serialNumbers) != $line->received_quantity) {
+                        throw ValidationException::withMessages([
+                            'serial_numbers' => "Number of serial numbers (" . count($serialNumbers) . ") must match received quantity ({$line->received_quantity}) for item: {$item->name} (Line {$line->line_no}).",
+                        ]);
+                    }
+
+                    foreach ($serialNumbers as $serialNumber) {
+                        // Check for duplicate serial numbers
+                        $existing = ItemSerialNumber::where('item_id', $item->id)
+                            ->where('serial_number', $serialNumber)
+                            ->first();
+
+                        if ($existing) {
+                            throw ValidationException::withMessages([
+                                "lines.{$line->id}.serial_numbers" => "Serial number '{$serialNumber}' already exists for this item.",
+                            ]);
+                        }
+
+                        ItemSerialNumber::create([
+                            'item_id' => (int) $line->item_id,
+                            'serial_number' => $serialNumber,
+                            'status' => ItemSerialNumber::STATUS_AVAILABLE,
+                            'current_location_id' => (int) $receivingLocationId,
+                            'received_at' => $gr->posted_at,
+                            'goods_receipt_line_id' => (int) $line->id,
+                            'remarks' => "Received via GR #{$gr->gr_number}",
+                            'meta' => [
+                                'gr_number' => $gr->gr_number,
+                                'purchase_order_id' => (int) $gr->purchase_order_id,
+                            ],
+                        ]);
+                    }
+                }
             }
 
             $this->recordStatusHistory($gr, $from, $gr->status, 'post', $actor);
@@ -338,31 +497,11 @@ class GoodsReceiptService
                 'uom_id' => $pol->uom_id,
                 'ordered_quantity' => (float) $pol->quantity,
                 'received_quantity' => (float) ($line['received_quantity'] ?? 0),
+                'serial_numbers' => $line['serial_numbers'] ?? null, // Store serial numbers in line
                 'item_snapshot' => $pol->item_snapshot,
                 'uom_snapshot' => $pol->uom_snapshot,
                 'remarks' => Arr::get($line, 'remarks'),
             ]);
-
-            // If item is serialized and serial numbers provided, create serial number records
-            $item = $pol->item;
-            $serialNumbers = $line['serial_numbers'] ?? [];
-
-            if ($item && $item->is_serialized && is_array($serialNumbers) && count($serialNumbers) > 0) {
-                foreach ($serialNumbers as $serialNumber) {
-                    if (empty(trim($serialNumber))) {
-                        continue;
-                    }
-
-                    \App\Models\ItemSerialNumber::query()->create([
-                        'item_id' => $item->id,
-                        'serial_number' => trim($serialNumber),
-                        'status' => \App\Models\ItemSerialNumber::STATUS_AVAILABLE,
-                        'current_location_id' => $receivingLocation?->id,
-                        'received_at' => $gr->received_at,
-                        'goods_receipt_line_id' => $grLine->id,
-                    ]);
-                }
-            }
         }
     }
 

@@ -163,6 +163,15 @@ class GoodsReceiptController extends Controller
         return response()->json(['data' => $gr], 201);
     }
 
+    public function update(StoreGoodsReceiptRequest $request, GoodsReceipt $goodsReceipt): JsonResponse
+    {
+        $this->authorize('update', $goodsReceipt);
+
+        $gr = $this->service->updateDraft($request->user(), $goodsReceipt->id, $request->validated());
+
+        return response()->json(['data' => $gr]);
+    }
+
     public function post(Request $request, GoodsReceipt $goodsReceipt): JsonResponse
     {
         $this->authorize('post', $goodsReceipt);

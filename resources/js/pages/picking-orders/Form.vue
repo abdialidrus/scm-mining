@@ -143,6 +143,7 @@ async function checkStock(lineIdx: number) {
             line.__availableSerials = undefined;
         }
     } catch (e) {
+        console.error('Error fetching stock:', e);
         line.__availableStock = 0;
         line.__availableSerials = undefined;
     }
