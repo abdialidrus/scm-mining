@@ -21,7 +21,13 @@ import {
     TableRow,
 } from '@/components/ui/table';
 import AppLayout from '@/layouts/AppLayout.vue';
-import { deleteItem, listItems, type ItemDto } from '@/services/masterDataApi';
+import {
+    deleteItem,
+    listItemCategories,
+    listItems,
+    type ItemCategoryDto,
+    type ItemDto,
+} from '@/services/masterDataApi';
 import { BreadcrumbItem } from '@/types';
 import { Head, Link, router } from '@inertiajs/vue3';
 import {
@@ -32,12 +38,16 @@ import {
     Plus,
 } from 'lucide-vue-next';
 import { computed, onMounted, ref } from 'vue';
+import Multiselect from 'vue-multiselect';
+import 'vue-multiselect/dist/vue-multiselect.css';
 
 const loading = ref(true);
 const error = ref<string | null>(null);
 const items = ref<ItemDto[]>([]);
+const categories = ref<ItemCategoryDto[]>([]);
 
 const search = ref('');
+const selectedCategories = ref<ItemCategoryDto[]>([]);
 const page = ref(1);
 const perPage = ref(10);
 const hasNext = ref(false);
@@ -52,8 +62,10 @@ async function load() {
     error.value = null;
 
     try {
+        const categoryIds = selectedCategories.value.map((c) => c.id);
         const res = await listItems({
             search: search.value,
+            category_ids: categoryIds.length > 0 ? categoryIds : undefined,
             page: page.value,
             per_page: perPage.value,
         });
@@ -67,6 +79,16 @@ async function load() {
         error.value = e?.message ?? 'Failed to load items';
     } finally {
         loading.value = false;
+    }
+}
+
+async function loadCategories() {
+    try {
+        const res = await listItemCategories({ per_page: 100 });
+        const paginated = (res as any).data;
+        categories.value = (paginated?.data ?? []) as ItemCategoryDto[];
+    } catch (e: any) {
+        console.error('Failed to load categories:', e);
     }
 }
 
@@ -120,7 +142,10 @@ const breadcrumbs: BreadcrumbItem[] = [
     },
 ];
 
-onMounted(load);
+onMounted(async () => {
+    await loadCategories();
+    await load();
+});
 </script>
 
 <template>
@@ -144,7 +169,7 @@ onMounted(load);
             </div>
 
             <div class="mt-6 grid items-end gap-3 md:grid-cols-12">
-                <div class="md:col-span-10">
+                <div class="md:col-span-5">
                     <label class="text-sm font-medium">Search</label>
                     <div class="mt-1 flex h-10 items-center">
                         <Input
@@ -153,6 +178,48 @@ onMounted(load);
                             placeholder="Enter item SKU or name"
                         />
                     </div>
+                </div>
+                <div class="md:col-span-5">
+                    <label class="text-sm font-medium">Categories</label>
+                    <div class="mt-1 flex h-10 items-center">
+                        <Multiselect
+                            v-model="selectedCategories"
+                            :options="categories"
+                            :multiple="true"
+                            :close-on-select="false"
+                            :clear-on-select="false"
+                            :preserve-search="true"
+                            placeholder="Select categories"
+                            track-by="id"
+                            label="name"
+                            class="w-full"
+                        >
+                            <template #option="{ option }">
+                                <div class="flex items-center gap-2">
+                                    <div
+                                        v-if="option.color_code"
+                                        class="h-3 w-3 rounded-full"
+                                        :style="{
+                                            backgroundColor: option.color_code,
+                                        }"
+                                    ></div>
+                                    <span>{{ option.name }}</span>
+                                </div>
+                            </template>
+                            <template #tag="{ option, remove }">
+                                <span class="multiselect__tag">
+                                    <span>{{ option.name }}</span>
+                                    <i
+                                        class="multiselect__tag-icon"
+                                        @click="remove(option)"
+                                    ></i>
+                                </span>
+                            </template>
+                        </Multiselect>
+                    </div>
+                    <p class="mt-1 text-xs text-muted-foreground">
+                        Parent categories include their subcategories
+                    </p>
                 </div>
                 <div class="md:col-span-2">
                     <div class="mt-1 flex h-10 items-center">
@@ -164,7 +231,7 @@ onMounted(load);
                                 page = 1;
                                 load();
                             "
-                            >Search</Button
+                            >Apply</Button
                         >
                     </div>
                 </div>

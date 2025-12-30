@@ -85,4 +85,37 @@ class ItemCategory extends Model
     {
         return $query->whereNull('parent_id');
     }
+
+    /**
+     * Get all descendant category IDs (including self)
+     */
+    public function getAllDescendantIds(): array
+    {
+        $ids = [$this->id];
+
+        foreach ($this->children as $child) {
+            $ids = array_merge($ids, $child->getAllDescendantIds());
+        }
+
+        return $ids;
+    }
+
+    /**
+     * Static method to get all descendant IDs for multiple categories
+     */
+    public static function getDescendantIdsForCategories(array $categoryIds): array
+    {
+        $allIds = [];
+
+        // Load all categories with their children recursively
+        $categories = self::with(['children' => function ($query) {
+            $query->with('children');
+        }])->whereIn('id', $categoryIds)->get();
+
+        foreach ($categories as $category) {
+            $allIds = array_merge($allIds, $category->getAllDescendantIds());
+        }
+
+        return array_unique($allIds);
+    }
 }

@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\Item\StoreItemRequest;
 use App\Http\Requests\Api\Item\UpdateItemRequest;
 use App\Models\Item;
+use App\Models\ItemCategory;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -15,6 +16,7 @@ class ItemController extends Controller
     public function index(Request $request): JsonResponse
     {
         $search = trim((string) $request->query('search', ''));
+        $categoryIds = $request->query('category_ids', []);
 
         $perPage = (int) $request->query('per_page', 10);
         $perPage = max(1, min($perPage, 100));
@@ -43,6 +45,12 @@ class ItemController extends Controller
                 $q->where('items.sku', 'ilike', '%' . $search . '%')
                     ->orWhere('items.name', 'ilike', '%' . $search . '%');
             });
+        }
+
+        if (is_array($categoryIds) && count($categoryIds) > 0) {
+            // Get all descendant category IDs (including parent categories themselves)
+            $allCategoryIds = ItemCategory::getDescendantIdsForCategories($categoryIds);
+            $query->whereIn('items.item_category_id', $allCategoryIds);
         }
 
         $paginator = $query->paginate($perPage)->appends($request->query());

@@ -79,11 +79,17 @@ export type Paginated<T> = {
 
 export async function listItems(params?: {
     search?: string;
+    category_ids?: number[];
     page?: number;
     per_page?: number;
 }) {
     const qs = new URLSearchParams();
     if (params?.search) qs.set('search', params.search);
+    if (params?.category_ids && params.category_ids.length > 0) {
+        params.category_ids.forEach((id) =>
+            qs.append('category_ids[]', String(id)),
+        );
+    }
     if (params?.page) qs.set('page', String(params.page));
     if (params?.per_page) qs.set('per_page', String(params.per_page));
     const suffix = qs.toString() ? `?${qs.toString()}` : '';
