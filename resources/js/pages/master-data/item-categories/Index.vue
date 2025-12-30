@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Badge } from '@/components/ui/badge';
-import Button from '@/components/ui/button/Button.vue';
+import { Button } from '@/components/ui/button';
 import {
     Dialog,
     DialogContent,
@@ -9,7 +9,7 @@ import {
     DialogHeader,
     DialogTitle,
 } from '@/components/ui/dialog';
-import Input from '@/components/ui/input/Input.vue';
+import { Input } from '@/components/ui/input';
 import Pagination from '@/components/ui/pagination/Pagination.vue';
 import PaginationContent from '@/components/ui/pagination/PaginationContent.vue';
 import {
@@ -21,8 +21,12 @@ import {
     TableRow,
 } from '@/components/ui/table';
 import AppLayout from '@/layouts/AppLayout.vue';
-import { deleteItem, listItems, type ItemDto } from '@/services/masterDataApi';
-import { BreadcrumbItem } from '@/types';
+import {
+    deleteItemCategory,
+    listItemCategories,
+    type ItemCategoryDto,
+    type Paginated,
+} from '@/services/masterDataApi';
 import { Head, Link, router } from '@inertiajs/vue3';
 import {
     ChevronLeft,
@@ -30,251 +34,241 @@ import {
     ChevronsLeft,
     ChevronsRight,
     Plus,
+    Search,
 } from 'lucide-vue-next';
-import { computed, onMounted, ref } from 'vue';
+import { computed, ref, watch } from 'vue';
 
-const loading = ref(true);
-const error = ref<string | null>(null);
-const items = ref<ItemDto[]>([]);
-
+const categories = ref<ItemCategoryDto[]>([]);
+const loading = ref(false);
 const search = ref('');
-const page = ref(1);
+const filterActive = ref<string>('all');
+const currentPage = ref(1);
 const perPage = ref(10);
-const hasNext = ref(false);
 const totalPages = ref(1);
-const hasPrev = computed(() => page.value > 1);
+const hasNext = computed(() => currentPage.value < totalPages.value);
+const hasPrev = computed(() => currentPage.value > 1);
 
 const deleteDialog = ref(false);
-const itemToDelete = ref<ItemDto | null>(null);
+const categoryToDelete = ref<ItemCategoryDto | null>(null);
 
-async function load() {
+const filteredCategories = computed(() => {
+    return categories.value;
+});
+
+async function loadCategories() {
     loading.value = true;
-    error.value = null;
-
     try {
-        const res = await listItems({
-            search: search.value,
-            page: page.value,
+        const params: any = {
+            search: search.value || undefined,
+            page: currentPage.value,
             per_page: perPage.value,
-        });
-        const paginated = (res as any).data;
-        items.value = (paginated?.data ?? []) as ItemDto[];
+        };
 
-        totalPages.value = paginated.last_page;
-        page.value = paginated.current_page;
-        hasNext.value = page.value < totalPages.value;
-    } catch (e: any) {
-        error.value = e?.message ?? 'Failed to load items';
+        if (filterActive.value === 'active') {
+            params.is_active = true;
+        } else if (filterActive.value === 'inactive') {
+            params.is_active = false;
+        }
+
+        const response = await listItemCategories(params);
+        const data = response.data as Paginated<ItemCategoryDto>;
+        categories.value = data.data;
+
+        totalPages.value = data.last_page;
+        currentPage.value = data.current_page;
+    } catch (error) {
+        console.error('Failed to load categories:', error);
+        alert('Failed to load item categories');
     } finally {
         loading.value = false;
     }
 }
 
-function goToPage(p: number) {
-    const next = Math.max(1, Math.min(p, totalPages.value || 1));
-    if (next === page.value) return;
-    page.value = next;
-    load();
-}
-
-function onChangePerPage() {
-    page.value = 1;
-    load();
-}
-
-function nextPage() {
-    if (!hasNext.value) return;
-    page.value += 1;
-    load();
-}
-
-function prevPage() {
-    if (!hasPrev.value) return;
-    page.value -= 1;
-    load();
-}
-
-function confirmDelete(item: ItemDto) {
-    itemToDelete.value = item;
+function confirmDelete(category: ItemCategoryDto) {
+    categoryToDelete.value = category;
     deleteDialog.value = true;
 }
 
 async function handleDelete() {
-    if (!itemToDelete.value) return;
+    if (!categoryToDelete.value) return;
 
     try {
-        await deleteItem(itemToDelete.value.id);
-        alert('Item deleted successfully');
+        await deleteItemCategory(categoryToDelete.value.id);
+        alert('Item category deleted successfully');
         deleteDialog.value = false;
-        itemToDelete.value = null;
-        load();
+        categoryToDelete.value = null;
+        loadCategories();
     } catch (error: any) {
-        alert(error.response?.data?.message || 'Failed to delete item');
+        alert(
+            error.response?.data?.message || 'Failed to delete item category',
+        );
     }
 }
 
-const breadcrumbs: BreadcrumbItem[] = [
-    {
-        title: 'Items',
-        href: '#',
-    },
-];
+function goToPage(page: number) {
+    currentPage.value = page;
+    loadCategories();
+}
 
-onMounted(load);
+function onChangePerPage() {
+    currentPage.value = 1;
+    loadCategories();
+}
+
+function nextPage() {
+    if (!hasNext.value) return;
+    currentPage.value += 1;
+    loadCategories();
+}
+
+function prevPage() {
+    if (!hasPrev.value) return;
+    currentPage.value -= 1;
+    loadCategories();
+}
+
+watch([search, filterActive], () => {
+    currentPage.value = 1;
+    loadCategories();
+});
+
+loadCategories();
 </script>
 
 <template>
-    <Head title="Master Data - Items" />
+    <Head title="Item Categories" />
 
-    <AppLayout :breadcrumbs="breadcrumbs">
-        <div
-            class="flex h-full flex-1 flex-col gap-4 overflow-x-auto rounded-xl p-4"
-        >
+    <AppLayout>
+        <div class="space-y-6 p-6">
+            <!-- Header -->
             <div class="flex items-center justify-between">
                 <div>
-                    <h1 class="text-xl font-semibold">Items</h1>
-                    <p class="text-sm text-muted-foreground">Manage items</p>
+                    <h1 class="text-3xl font-bold">Item Categories</h1>
+                    <p class="text-muted-foreground">
+                        Manage item categories and hierarchy
+                    </p>
                 </div>
-                <Link href="/master-data/items/create">
+                <Link href="/master-data/item-categories/create">
                     <Button>
                         <Plus class="mr-2 h-4 w-4" />
-                        Create Item
+                        Create Category
                     </Button>
                 </Link>
             </div>
 
-            <div class="mt-6 grid items-end gap-3 md:grid-cols-12">
-                <div class="md:col-span-10">
-                    <label class="text-sm font-medium">Search</label>
-                    <div class="mt-1 flex h-10 items-center">
-                        <Input
-                            v-model="search"
-                            class="h-10"
-                            placeholder="Enter item SKU or name"
-                        />
-                    </div>
+            <!-- Filters -->
+            <div class="flex gap-4">
+                <div class="relative flex-1">
+                    <Search
+                        class="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 transform text-muted-foreground"
+                    />
+                    <Input
+                        v-model="search"
+                        placeholder="Search by code or name..."
+                        class="pl-10"
+                    />
                 </div>
-                <div class="md:col-span-2">
-                    <div class="mt-1 flex h-10 items-center">
-                        <Button
-                            variant="outline"
-                            type="button"
-                            class="h-10 w-full"
-                            @click="
-                                page = 1;
-                                load();
-                            "
-                            >Search</Button
-                        >
-                    </div>
-                </div>
+                <select
+                    v-model="filterActive"
+                    class="rounded-md border bg-background px-4 py-2"
+                >
+                    <option value="all">All Status</option>
+                    <option value="active">Active Only</option>
+                    <option value="inactive">Inactive Only</option>
+                </select>
             </div>
 
-            <div
-                v-if="error"
-                class="mt-4 rounded-md border border-destructive/40 bg-destructive/10 p-3 text-sm"
-            >
-                {{ error }}
-            </div>
-
-            <div v-if="loading" class="mt-6 text-sm text-muted-foreground">
-                Loading…
-            </div>
-
-            <div v-else class="mt-6 overflow-hidden rounded-lg border">
+            <!-- Table -->
+            <div class="rounded-lg border">
                 <Table>
-                    <TableHeader class="bg-muted/40">
+                    <TableHeader>
                         <TableRow>
-                            <TableHead>SKU</TableHead>
+                            <TableHead>Code</TableHead>
                             <TableHead>Name</TableHead>
-                            <TableHead>Category</TableHead>
-                            <TableHead>Base UOM</TableHead>
-                            <TableHead>Serialized</TableHead>
-                            <TableHead>Criticality</TableHead>
+                            <TableHead>Full Path</TableHead>
+                            <TableHead>Status</TableHead>
+                            <TableHead>Requires Approval</TableHead>
+                            <TableHead>Sort Order</TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>
-                        <TableRow
-                            v-for="it in items"
-                            :key="it.id"
-                            class="cursor-pointer hover:bg-muted/30"
-                            @click="router.visit(`/master-data/items/${it.id}`)"
-                        >
-                            <TableCell class="font-mono font-medium">{{
-                                it.sku
-                            }}</TableCell>
-                            <TableCell class="font-medium">{{
-                                it.name
-                            }}</TableCell>
-                            <TableCell>
-                                <div
-                                    v-if="it.category_name"
-                                    class="flex items-center gap-2"
-                                >
-                                    <div
-                                        v-if="it.category_color"
-                                        class="h-3 w-3 rounded-full"
-                                        :style="{
-                                            backgroundColor: it.category_color,
-                                        }"
-                                    ></div>
-                                    <span class="text-sm">{{
-                                        it.category_name
-                                    }}</span>
-                                </div>
-                                <span
-                                    v-else
-                                    class="text-sm text-muted-foreground"
-                                    >-</span
-                                >
-                            </TableCell>
-                            <TableCell>{{ it.base_uom_code ?? '-' }}</TableCell>
-                            <TableCell>
-                                <Badge
-                                    v-if="it.is_serialized"
-                                    variant="default"
-                                >
-                                    Serialized
-                                </Badge>
-                                <span
-                                    v-else
-                                    class="text-sm text-muted-foreground"
-                                    >No</span
-                                >
-                            </TableCell>
-                            <TableCell>
-                                <Badge
-                                    v-if="it.criticality_level"
-                                    :variant="
-                                        it.criticality_level >= 4
-                                            ? 'destructive'
-                                            : it.criticality_level >= 3
-                                              ? 'default'
-                                              : 'secondary'
-                                    "
-                                >
-                                    Level {{ it.criticality_level }}
-                                </Badge>
-                                <span
-                                    v-else
-                                    class="text-sm text-muted-foreground"
-                                    >-</span
-                                >
+                        <TableRow v-if="loading">
+                            <TableCell colspan="7" class="py-8 text-center">
+                                Loading...
                             </TableCell>
                         </TableRow>
-
-                        <TableRow v-if="items.length === 0">
-                            <TableCell
-                                colspan="7"
-                                class="py-6 text-center text-muted-foreground"
-                            >
-                                No items.
+                        <TableRow v-else-if="filteredCategories.length === 0">
+                            <TableCell colspan="7" class="py-8 text-center">
+                                No categories found
+                            </TableCell>
+                        </TableRow>
+                        <TableRow
+                            v-for="category in filteredCategories"
+                            :key="category.id"
+                            class="cursor-pointer hover:bg-muted/30"
+                            @click="
+                                router.visit(
+                                    `/master-data/item-categories/${category.id}`,
+                                )
+                            "
+                        >
+                            <TableCell class="font-mono">
+                                <div class="flex items-center gap-2">
+                                    <div
+                                        v-if="category.color_code"
+                                        class="h-3 w-3 rounded-full"
+                                        :style="{
+                                            backgroundColor:
+                                                category.color_code,
+                                        }"
+                                    ></div>
+                                    {{ category.code }}
+                                </div>
+                            </TableCell>
+                            <TableCell class="font-medium">
+                                {{ category.name }}
+                            </TableCell>
+                            <TableCell class="text-sm text-muted-foreground">
+                                {{ category.full_path || category.name }}
+                            </TableCell>
+                            <TableCell>
+                                <Badge
+                                    :variant="
+                                        category.is_active
+                                            ? 'default'
+                                            : 'secondary'
+                                    "
+                                >
+                                    {{
+                                        category.is_active
+                                            ? 'Active'
+                                            : 'Inactive'
+                                    }}
+                                </Badge>
+                            </TableCell>
+                            <TableCell>
+                                <Badge
+                                    v-if="category.requires_approval"
+                                    variant="destructive"
+                                >
+                                    Required
+                                </Badge>
+                                <span
+                                    v-else
+                                    class="text-sm text-muted-foreground"
+                                >
+                                    No
+                                </span>
+                            </TableCell>
+                            <TableCell>
+                                {{ category.sort_order }}
                             </TableCell>
                         </TableRow>
                     </TableBody>
                 </Table>
             </div>
 
+            <!-- Pagination -->
             <div class="flex items-center justify-between">
                 <div
                     class="hidden flex-1 text-sm text-muted-foreground lg:flex"
@@ -303,12 +297,12 @@ onMounted(load);
                     <div
                         class="flex w-fit items-center justify-center text-sm font-medium"
                     >
-                        Page {{ page }} of {{ totalPages }}
+                        Page {{ currentPage }} of {{ totalPages }}
                     </div>
 
                     <div class="ml-auto flex items-center gap-2 lg:ml-0">
                         <Pagination
-                            :page="page"
+                            :page="currentPage"
                             :items-per-page="perPage"
                             :total="totalPages * perPage"
                             :sibling-count="1"
@@ -319,7 +313,7 @@ onMounted(load);
                                 <Button
                                     variant="outline"
                                     class="hidden h-8 w-8 p-0 lg:flex"
-                                    :disabled="page === 1"
+                                    :disabled="currentPage === 1"
                                     @click="goToPage(1)"
                                 >
                                     <span class="sr-only"
@@ -331,7 +325,7 @@ onMounted(load);
                                     variant="outline"
                                     class="size-8"
                                     size="icon"
-                                    :disabled="page === 1"
+                                    :disabled="currentPage === 1"
                                     @click="prevPage"
                                 >
                                     <span class="sr-only"
@@ -343,7 +337,7 @@ onMounted(load);
                                     variant="outline"
                                     class="size-8"
                                     size="icon"
-                                    :disabled="page === totalPages"
+                                    :disabled="currentPage === totalPages"
                                     @click="nextPage"
                                 >
                                     <span class="sr-only">Go to next page</span>
@@ -353,7 +347,7 @@ onMounted(load);
                                     variant="outline"
                                     class="hidden size-8 lg:flex"
                                     size="icon"
-                                    :disabled="page === totalPages"
+                                    :disabled="currentPage === totalPages"
                                     @click="goToPage(totalPages)"
                                 >
                                     <span class="sr-only">Go to last page</span>
@@ -370,13 +364,13 @@ onMounted(load);
         <Dialog v-model:open="deleteDialog">
             <DialogContent>
                 <DialogHeader>
-                    <DialogTitle>Delete Item</DialogTitle>
+                    <DialogTitle>Delete Item Category</DialogTitle>
                     <DialogDescription>
-                        Are you sure you want to delete item
-                        <strong>{{ itemToDelete?.name }}</strong
+                        Are you sure you want to delete category
+                        <strong>{{ categoryToDelete?.name }}</strong
                         >? <br /><br />
-                        This action cannot be undone. The item cannot be deleted
-                        if it is used in any transactions.
+                        This action cannot be undone. The category cannot be
+                        deleted if it has items or subcategories.
                     </DialogDescription>
                 </DialogHeader>
                 <DialogFooter>

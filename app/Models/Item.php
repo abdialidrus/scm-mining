@@ -15,6 +15,7 @@ class Item extends Model
         'is_serialized',
         'criticality_level',
         'base_uom_id',
+        'item_category_id',
     ];
 
     protected function casts(): array
@@ -28,5 +29,10 @@ class Item extends Model
     public function baseUom()
     {
         return $this->belongsTo(Uom::class, 'base_uom_id');
+    }
+
+    public function category()
+    {
+        return $this->belongsTo(ItemCategory::class, 'item_category_id');
     }
 }

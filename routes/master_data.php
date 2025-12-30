@@ -4,9 +4,51 @@ use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
 Route::middleware(['auth', 'verified'])->group(function () {
+    // Items
     Route::get('/master-data/items', function () {
         return Inertia::render('master-data/items/Index');
     })->name('master-data.items.index');
+
+    Route::get('/master-data/items/create', function () {
+        return Inertia::render('master-data/items/Form', [
+            'id' => null,
+        ]);
+    })->name('master-data.items.create');
+
+    Route::get('/master-data/items/{item}/edit', function (\App\Models\Item $item) {
+        return Inertia::render('master-data/items/Form', [
+            'id' => $item->id,
+        ]);
+    })->name('master-data.items.edit');
+
+    Route::get('/master-data/items/{item}', function (\App\Models\Item $item) {
+        return Inertia::render('master-data/items/Show', [
+            'id' => $item->id,
+        ]);
+    })->name('master-data.items.show');
+
+    // Item Categories
+    Route::get('/master-data/item-categories', function () {
+        return Inertia::render('master-data/item-categories/Index');
+    })->name('master-data.item-categories.index');
+
+    Route::get('/master-data/item-categories/create', function () {
+        return Inertia::render('master-data/item-categories/Form', [
+            'id' => null,
+        ]);
+    })->name('master-data.item-categories.create');
+
+    Route::get('/master-data/item-categories/{itemCategory}/edit', function (\App\Models\ItemCategory $itemCategory) {
+        return Inertia::render('master-data/item-categories/Form', [
+            'id' => $itemCategory->id,
+        ]);
+    })->name('master-data.item-categories.edit');
+
+    Route::get('/master-data/item-categories/{itemCategory}', function (\App\Models\ItemCategory $itemCategory) {
+        return Inertia::render('master-data/item-categories/Show', [
+            'id' => $itemCategory->id,
+        ]);
+    })->name('master-data.item-categories.show');
 
     Route::get('/master-data/uoms', function () {
         return Inertia::render('master-data/uoms/Index');

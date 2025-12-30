@@ -3,6 +3,7 @@
 use App\Http\Controllers\Api\ApprovalWorkflowController;
 use App\Http\Controllers\Api\DepartmentController;
 use App\Http\Controllers\Api\GoodsReceiptController;
+use App\Http\Controllers\Api\ItemCategoryController;
 use App\Http\Controllers\Api\ItemController;
 use App\Http\Controllers\Api\ItemSerialNumberController;
 use App\Http\Controllers\Api\PickingOrderController;
@@ -23,9 +24,27 @@ Route::middleware('auth:sanctum')->group(function () {
         return $request->user();
     });
 
-    Route::get('/items', [ItemController::class, 'index']);
+    // Items
+    Route::prefix('items')->group(function () {
+        Route::get('/', [ItemController::class, 'index']);
+        Route::post('/', [ItemController::class, 'store']);
+        Route::get('/{item}', [ItemController::class, 'show']);
+        Route::put('/{item}', [ItemController::class, 'update']);
+        Route::delete('/{item}', [ItemController::class, 'destroy']);
+    });
+
     Route::get('/uoms', [UomController::class, 'index']);
     Route::get('/departments', [DepartmentController::class, 'index']);
+
+    // Item Categories
+    Route::prefix('item-categories')->group(function () {
+        Route::get('/tree', [ItemCategoryController::class, 'tree']);
+        Route::get('/', [ItemCategoryController::class, 'index']);
+        Route::post('/', [ItemCategoryController::class, 'store']);
+        Route::get('/{itemCategory}', [ItemCategoryController::class, 'show']);
+        Route::put('/{itemCategory}', [ItemCategoryController::class, 'update']);
+        Route::delete('/{itemCategory}', [ItemCategoryController::class, 'destroy']);
+    });
 
     Route::prefix('purchase-requests')->group(function () {
         Route::get('/', [PurchaseRequestController::class, 'index']);

@@ -141,6 +141,11 @@ const masterDataNavItems: NavItem[] = [
         icon: Package,
     },
     {
+        title: 'Item Categories',
+        href: '/master-data/item-categories',
+        icon: Package,
+    },
+    {
         title: 'UOMs',
         href: '/master-data/uoms',
         icon: Ruler,
