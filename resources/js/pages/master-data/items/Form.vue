@@ -162,7 +162,7 @@ onMounted(async () => {
     <Head :title="isEditMode ? 'Edit Item' : 'Create Item'" />
 
     <AppLayout :breadcrumbs="breadcrumbs">
-        <div class="mx-auto max-w-4xl space-y-6 p-6">
+        <div class="flex flex-col gap-4 p-4">
             <!-- Header -->
             <div class="flex items-center gap-4">
                 <Button

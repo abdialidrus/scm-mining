@@ -60,7 +60,7 @@ onMounted(() => {
     <Head title="Item Category Detail" />
 
     <AppLayout>
-        <div class="mx-auto max-w-4xl space-y-6 p-6">
+        <div class="flex flex-col gap-4 p-4">
             <!-- Header -->
             <div class="flex items-center justify-between">
                 <div class="flex items-center gap-4">
@@ -101,7 +101,7 @@ onMounted(() => {
             <div v-if="loading" class="py-8 text-center">Loading...</div>
 
             <!-- Content -->
-            <div v-else-if="category" class="space-y-6">
+            <div v-else-if="category" class="grid gap-6">
                 <!-- Basic Information -->
                 <Card>
                     <CardHeader>
