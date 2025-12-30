@@ -44,12 +44,10 @@ async function load() {
         const paginated = (res as any).data;
         uoms.value = (paginated?.data ?? []) as UomDto[];
 
-        const meta = paginated?.meta;
-        const currentPage = Number(meta?.current_page ?? page.value);
-        const lastPage = Number(meta?.last_page ?? currentPage);
-        page.value = currentPage;
-        totalPages.value = lastPage;
-        hasNext.value = currentPage < lastPage;
+        totalPages.value = paginated.last_page;
+        page.value = paginated.current_page;
+
+        hasNext.value = page.value < totalPages.value;
     } catch (e: any) {
         error.value = e?.message ?? 'Failed to load UOMs';
     } finally {
