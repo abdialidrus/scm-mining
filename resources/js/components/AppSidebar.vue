@@ -67,6 +67,8 @@ const canShowPickingOrders = isSuperAdmin || isWarehouse || isGm || isDirector;
 const canShowInventoryReports =
     isSuperAdmin || isProcurement || isGm || isDirector;
 
+const canShowWarehouses = isSuperAdmin || isWarehouse || isProcurement;
+
 const mainNavItems: NavItem[] = [
     {
         title: 'Dashboard',
@@ -129,43 +131,56 @@ const inventoryNavItems: NavItem[] = [
     },
 ];
 
-const masterDataNavItems: NavItem[] = [
-    {
-        title: 'Departments',
-        href: '/master-data/departments',
-        icon: Users,
-    },
-    {
-        title: 'Items',
-        href: '/master-data/items',
-        icon: Package,
-    },
-    {
-        title: 'Item Categories',
-        href: '/master-data/item-categories',
-        icon: Package,
-    },
-    {
-        title: 'UOMs',
-        href: '/master-data/uoms',
-        icon: Ruler,
-    },
-    {
-        title: 'Warehouses',
-        href: '/master-data/warehouses',
-        icon: Warehouse,
-    },
-    {
-        title: 'Suppliers',
-        href: '/master-data/suppliers',
-        icon: Users,
-    },
-    {
-        title: 'Users',
-        href: '/master-data/users',
-        icon: Users,
-    },
-];
+function getMasterDataNavItems(): NavItem[] {
+    const items: NavItem[] = [];
+
+    if (canShowWarehouses) {
+        items.push({
+            title: 'Warehouses',
+            href: '/master-data/warehouses',
+            icon: Warehouse,
+        });
+    }
+
+    if (canShowMasterData) {
+        items.push(
+            {
+                title: 'Departments',
+                href: '/master-data/departments',
+                icon: Users,
+            },
+            {
+                title: 'Items',
+                href: '/master-data/items',
+                icon: Package,
+            },
+            {
+                title: 'Item Categories',
+                href: '/master-data/item-categories',
+                icon: Package,
+            },
+            {
+                title: 'UOMs',
+                href: '/master-data/uoms',
+                icon: Ruler,
+            },
+            {
+                title: 'Suppliers',
+                href: '/master-data/suppliers',
+                icon: Users,
+            },
+            {
+                title: 'Users',
+                href: '/master-data/users',
+                icon: Users,
+            },
+        );
+    }
+
+    return items;
+}
+
+const masterDataNavItems: NavItem[] = [];
 
 const settingsNavItems: NavItem[] = isSuperAdmin
     ? [
@@ -215,9 +230,9 @@ const settingsNavItems: NavItem[] = isSuperAdmin
                 :items="inventoryNavItems"
             />
             <NavMain
-                v-if="canShowMasterData"
+                v-if="canShowMasterData || canShowWarehouses"
                 :title="'Master Data'"
-                :items="masterDataNavItems"
+                :items="getMasterDataNavItems()"
             />
             <NavMain
                 v-if="isSuperAdmin"

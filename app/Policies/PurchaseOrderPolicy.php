@@ -15,7 +15,7 @@ class PurchaseOrderPolicy
     public function viewAny(User $user): bool
     {
         // minimal for now
-        return $user->hasAnyRole(['super_admin', 'procurement', 'finance', 'gm', 'director']);
+        return $user->hasAnyRole(['super_admin', 'procurement', 'finance', 'gm', 'director', 'warehouse']);
     }
 
     public function view(User $user, PurchaseOrder $purchaseOrder): bool

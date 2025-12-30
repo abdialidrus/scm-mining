@@ -35,8 +35,10 @@ class PurchaseRequestController extends Controller
             ->with(['department', 'requester'])
             ->orderByDesc('id');
 
-        // Minimal scoping: user's department only.
-        if ($user?->department_id) {
+        // Scoping:
+        // - Users with "view all prs" permission can see all PRs (e.g., Procurement role)
+        // - Other users can only see their department's PRs
+        if ($user?->department_id && !$user->can('view all prs')) {
             $query->where('department_id', $user->department_id);
         }
 

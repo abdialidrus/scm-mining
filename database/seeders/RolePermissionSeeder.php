@@ -16,6 +16,7 @@ class RolePermissionSeeder extends Seeder
         $permissions = [
             'create pr',
             'approve pr',
+            'view all prs',
             'create po',
             'approve po',
             'receive goods',
@@ -38,7 +39,7 @@ class RolePermissionSeeder extends Seeder
         $deptHead->givePermissionTo(['approve pr']);
 
         $proc = Role::query()->firstOrCreate(['name' => 'procurement', 'guard_name' => 'web']);
-        $proc->givePermissionTo(['create po']);
+        $proc->givePermissionTo(['create po', 'view all prs']);
 
         $finance = Role::query()->firstOrCreate(['name' => 'finance', 'guard_name' => 'web']);
         $finance->givePermissionTo(['approve po']);
