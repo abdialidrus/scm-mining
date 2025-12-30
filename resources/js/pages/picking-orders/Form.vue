@@ -6,6 +6,7 @@ import { formatQty } from '@/lib/format';
 import { apiFetch } from '@/services/http';
 import {
     fetchDepartments,
+    fetchItems,
     fetchWarehouses,
     type DepartmentDto,
     type ItemDto,
@@ -95,17 +96,10 @@ async function loadDepartments() {
 
 async function loadItems() {
     try {
-        const res = await apiFetch<{
-            data: { data: ItemDto[]; total: number };
-        }>(`/api/items`);
-
-        // Extract items array from paginated response: { data: { data: [...] } }
-        if (res.data && Array.isArray(res.data.data)) {
-            items.value = res.data.data;
-        } else {
-            items.value = [];
-            console.error('Items API returned unexpected structure:', res);
-        }
+        // Use fetchItems helper with large limit to get all items for dropdown
+        // This provides better UX for forms where users need to select from all available items
+        const res = await fetchItems({ limit: 1000 });
+        items.value = res.data || [];
     } catch (e) {
         console.error('Failed to load items:', e);
         items.value = [];
