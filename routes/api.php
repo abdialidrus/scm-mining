@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Api\ApprovalController;
 use App\Http\Controllers\Api\ApprovalWorkflowController;
 use App\Http\Controllers\Api\DepartmentController;
 use App\Http\Controllers\Api\GoodsReceiptController;
@@ -162,5 +163,11 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::put('/{approvalWorkflow}/steps/{step}', [ApprovalWorkflowController::class, 'updateStep']);
         Route::delete('/{approvalWorkflow}/steps/{step}', [ApprovalWorkflowController::class, 'destroyStep']);
         Route::put('/{approvalWorkflow}/steps/reorder', [ApprovalWorkflowController::class, 'reorderSteps']);
+    });
+
+    // My Approvals endpoints
+    Route::prefix('approvals')->group(function () {
+        Route::get('/my-pending', [ApprovalController::class, 'myPendingApprovals']);
+        Route::get('/statistics', [ApprovalController::class, 'statistics']);
     });
 });

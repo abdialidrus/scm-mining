@@ -14,6 +14,7 @@ import { dashboard } from '@/routes';
 import { type NavItem } from '@/types';
 import { Link, usePage } from '@inertiajs/vue3';
 import {
+    CheckCircle,
     FileText,
     GitBranch,
     LayoutGrid,
@@ -69,6 +70,10 @@ const canShowInventoryReports =
 
 const canShowWarehouses = isSuperAdmin || isWarehouse || isProcurement;
 
+// Check if user has any approver role
+const canShowMyApprovals =
+    isSuperAdmin || isDeptHead || isFinance || isGm || isDirector;
+
 const mainNavItems: NavItem[] = [
     {
         title: 'Dashboard',
@@ -76,6 +81,14 @@ const mainNavItems: NavItem[] = [
         icon: LayoutGrid,
     },
 ];
+
+if (canShowMyApprovals) {
+    mainNavItems.push({
+        title: 'My Approvals',
+        href: '/my-approvals',
+        icon: CheckCircle,
+    });
+}
 
 function getProcurementNavItems(): NavItem[] {
     const items: NavItem[] = [];
