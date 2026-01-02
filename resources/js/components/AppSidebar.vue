@@ -11,6 +11,7 @@ import {
     SidebarMenuItem,
 } from '@/components/ui/sidebar';
 import { dashboard } from '@/routes';
+import { getApprovalStatistics } from '@/services/approvalApi';
 import { type NavItem } from '@/types';
 import { Link, usePage } from '@inertiajs/vue3';
 import {
@@ -28,6 +29,7 @@ import {
     Users,
     Warehouse,
 } from 'lucide-vue-next';
+import { onMounted, ref } from 'vue';
 import AppLogo from './AppLogo.vue';
 
 const page = usePage();
@@ -74,6 +76,8 @@ const canShowWarehouses = isSuperAdmin || isWarehouse || isProcurement;
 const canShowMyApprovals =
     isSuperAdmin || isDeptHead || isFinance || isGm || isDirector;
 
+const pendingApprovalsCount = ref(0);
+
 const mainNavItems: NavItem[] = [
     {
         title: 'Dashboard',
@@ -87,8 +91,21 @@ if (canShowMyApprovals) {
         title: 'My Approvals',
         href: '/my-approvals',
         icon: CheckCircle,
+        badge: pendingApprovalsCount,
     });
 }
+
+// Load pending approvals count
+onMounted(async () => {
+    if (canShowMyApprovals) {
+        try {
+            const stats = await getApprovalStatistics();
+            pendingApprovalsCount.value = stats.data.pending_count;
+        } catch (error) {
+            console.error('Failed to load approval statistics:', error);
+        }
+    }
+});
 
 function getProcurementNavItems(): NavItem[] {
     const items: NavItem[] = [];

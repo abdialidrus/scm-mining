@@ -16,6 +16,12 @@ defineProps<{
 }>();
 
 const page = usePage();
+
+function getBadgeValue(badge: NavItem['badge']): number | undefined {
+    if (badge === undefined) return undefined;
+    if (typeof badge === 'number') return badge;
+    return badge.value;
+}
 </script>
 
 <template>
@@ -28,9 +34,23 @@ const page = usePage();
                     :is-active="urlIsActive(item.href, page.url)"
                     :tooltip="item.title"
                 >
-                    <Link :href="item.href">
-                        <component :is="item.icon" />
-                        <span>{{ item.title }}</span>
+                    <Link
+                        :href="item.href"
+                        class="flex w-full items-center justify-between"
+                    >
+                        <div class="flex items-center gap-2">
+                            <component :is="item.icon" class="size-4" />
+                            <span>{{ item.title }}</span>
+                        </div>
+                        <span
+                            v-if="
+                                getBadgeValue(item.badge) !== undefined &&
+                                getBadgeValue(item.badge)! > 0
+                            "
+                            class="ml-auto flex h-5 min-w-5 shrink-0 items-center justify-center rounded-full bg-red-500 px-1.5 text-xs font-medium text-white"
+                        >
+                            {{ getBadgeValue(item.badge) }}
+                        </span>
                     </Link>
                 </SidebarMenuButton>
             </SidebarMenuItem>
