@@ -369,8 +369,8 @@ class InventoryAnalytics
                     'stock_level_percent' => $item->reorder_point > 0
                         ? round(($item->current_stock / $item->reorder_point) * 100, 1)
                         : 0,
-                ];
-            }),
+                };
+            })->toArray(),
             'total_items' => $recommendations->count(),
         ];
     }

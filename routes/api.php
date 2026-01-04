@@ -5,6 +5,7 @@ use App\Http\Controllers\Api\ApprovalWorkflowController;
 use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\DepartmentController;
 use App\Http\Controllers\Api\GoodsReceiptController;
+use App\Http\Controllers\Api\InventoryDashboardController;
 use App\Http\Controllers\Api\ItemCategoryController;
 use App\Http\Controllers\Api\ItemController;
 use App\Http\Controllers\Api\ItemSerialNumberController;
@@ -40,6 +41,21 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/goods-receipt-performance', [DashboardController::class, 'goodsReceiptPerformance']);
         Route::get('/putaway-efficiency', [DashboardController::class, 'putAwayEfficiency']);
         Route::post('/clear-cache', [DashboardController::class, 'clearCache']);
+    });
+
+    // Inventory Dashboard (Warehouse-focused)
+    Route::prefix('inventory')->middleware('role:warehouse|super_admin|gm|director')->group(function () {
+        Route::get('/', [InventoryDashboardController::class, 'index']);
+        Route::get('/kpis', [InventoryDashboardController::class, 'kpis']);
+        Route::get('/stock-valuation', [InventoryDashboardController::class, 'stockValuation']);
+        Route::get('/movement-analysis', [InventoryDashboardController::class, 'movementAnalysis']);
+        Route::get('/warehouse-comparison', [InventoryDashboardController::class, 'warehouseComparison']);
+        Route::get('/top-moving-items', [InventoryDashboardController::class, 'topMovingItems']);
+        Route::get('/stock-aging', [InventoryDashboardController::class, 'stockAging']);
+        Route::get('/reorder-recommendations', [InventoryDashboardController::class, 'reorderRecommendations']);
+        Route::get('/dead-stock', [InventoryDashboardController::class, 'deadStock']);
+        Route::get('/turnover-rate', [InventoryDashboardController::class, 'turnoverRate']);
+        Route::post('/clear-cache', [InventoryDashboardController::class, 'clearCache'])->middleware('role:super_admin');
     });
 
     // Items

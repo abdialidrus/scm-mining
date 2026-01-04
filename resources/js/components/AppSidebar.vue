@@ -115,6 +115,15 @@ if (isSuperAdmin || isGm || isDirector || isProcurement || isFinance) {
     });
 }
 
+// Inventory Dashboard - available for warehouse, management, and procurement roles
+if (isSuperAdmin || isWarehouse || isGm || isDirector || isProcurement) {
+    mainNavItems.push({
+        title: 'Inventory Analytics',
+        href: '/inventory/dashboard',
+        icon: Package,
+    });
+}
+
 // Load pending approvals count
 onMounted(async () => {
     if (canShowMyApprovals) {

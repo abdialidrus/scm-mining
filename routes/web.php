@@ -16,6 +16,10 @@ Route::get('reports', function () {
     return Inertia::render('Reports/Index');
 })->middleware(['auth', 'verified'])->name('reports');
 
+Route::get('inventory/dashboard', function () {
+    return Inertia::render('Inventory/Dashboard');
+})->middleware(['auth', 'verified', 'role:warehouse|super_admin|gm|director'])->name('inventory.dashboard');
+
 require __DIR__ . '/settings.php';
 require __DIR__ . '/approval_workflows.php';
 require __DIR__ . '/approvals.php';
