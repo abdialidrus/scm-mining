@@ -6,9 +6,11 @@ use App\Models\Approval;
 use App\Models\ApprovalWorkflow;
 use App\Models\ApprovalWorkflowStep;
 use App\Models\User;
+use App\Notifications\Approval\ApprovalRequiredNotification;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\ValidationException;
 
 class ApprovalWorkflowService
@@ -58,7 +60,7 @@ class ApprovalWorkflowService
             }
 
             // Create approval instance
-            Approval::create([
+            $approval = Approval::create([
                 'approval_workflow_id' => $workflow->id,
                 'approval_workflow_step_id' => $step->id,
                 'approvable_type' => get_class($approvable),
@@ -67,6 +69,9 @@ class ApprovalWorkflowService
                 'assigned_to_user_id' => $assignedToUserId,
                 'assigned_to_role' => $assignedToRole,
             ]);
+
+            // Send notification to approver(s)
+            $this->notifyApprovers($approval, $approvable);
         }
     }
 
@@ -157,6 +162,9 @@ class ApprovalWorkflowService
                 'approved_at' => now(),
                 'comments' => $comments,
             ]);
+
+            // Send notification to document creator
+            $this->notifyApproved($approval, $user);
         });
     }
 
@@ -191,6 +199,9 @@ class ApprovalWorkflowService
 
             // Cancel all remaining pending approvals for this document
             $this->cancelRemainingApprovals($approval->approvable);
+
+            // Send notification to document creator
+            $this->notifyRejected($approval, $user);
         });
     }
 
@@ -298,6 +309,176 @@ class ApprovalWorkflowService
             if ($department && $department->head_user_id) {
                 return (int) $department->head_user_id;
             }
+        }
+
+        return null;
+    }
+
+    /**
+     * Send notification to approvers when approval is initiated.
+     *
+     * @param Approval $approval
+     * @param Model $approvable
+     * @return void
+     */
+    private function notifyApprovers(Approval $approval, Model $approvable): void
+    {
+        try {
+            $approvers = $this->getApproversForNotification($approval);
+
+            foreach ($approvers as $approver) {
+                $approver->notify(new ApprovalRequiredNotification(
+                    $approval,
+                    $approvable,
+                    $approver
+                ));
+            }
+
+            Log::info('Approval required notification sent', [
+                'approval_id' => $approval->id,
+                'approvable_type' => get_class($approvable),
+                'approvable_id' => $approvable->id,
+                'approver_count' => count($approvers),
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Failed to send approval required notification', [
+                'approval_id' => $approval->id,
+                'error' => $e->getMessage(),
+            ]);
+        }
+    }
+
+    /**
+     * Send notification when approval is approved.
+     *
+     * @param Approval $approval
+     * @param User $approver
+     * @return void
+     */
+    private function notifyApproved(Approval $approval, User $approver): void
+    {
+        try {
+            $approvable = $approval->approvable;
+
+            // Get document creator
+            $creator = $this->getDocumentCreator($approvable);
+
+            if (!$creator) {
+                return;
+            }
+
+            // Check if this is the final approval
+            $isFinalApproval = $this->isWorkflowComplete($approvable);
+
+            $creator->notify(new \App\Notifications\Approval\DocumentApprovedNotification(
+                $approval,
+                $approvable,
+                $approver,
+                $isFinalApproval
+            ));
+
+            Log::info('Document approved notification sent', [
+                'approval_id' => $approval->id,
+                'approvable_type' => get_class($approvable),
+                'approvable_id' => $approvable->id,
+                'is_final' => $isFinalApproval,
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Failed to send document approved notification', [
+                'approval_id' => $approval->id,
+                'error' => $e->getMessage(),
+            ]);
+        }
+    }
+
+    /**
+     * Send notification when approval is rejected.
+     *
+     * @param Approval $approval
+     * @param User $rejector
+     * @return void
+     */
+    private function notifyRejected(Approval $approval, User $rejector): void
+    {
+        try {
+            $approvable = $approval->approvable;
+
+            // Get document creator
+            $creator = $this->getDocumentCreator($approvable);
+
+            if (!$creator) {
+                return;
+            }
+
+            $creator->notify(new \App\Notifications\Approval\DocumentRejectedNotification(
+                $approval,
+                $approvable,
+                $rejector
+            ));
+
+            Log::info('Document rejected notification sent', [
+                'approval_id' => $approval->id,
+                'approvable_type' => get_class($approvable),
+                'approvable_id' => $approvable->id,
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Failed to send document rejected notification', [
+                'approval_id' => $approval->id,
+                'error' => $e->getMessage(),
+            ]);
+        }
+    }
+
+    /**
+     * Get approvers for notification.
+     *
+     * @param Approval $approval
+     * @return array
+     */
+    private function getApproversForNotification(Approval $approval): array
+    {
+        $approvers = [];
+
+        // If assigned to specific user
+        if ($approval->assigned_to_user_id) {
+            $user = User::find($approval->assigned_to_user_id);
+            if ($user) {
+                $approvers[] = $user;
+            }
+        }
+
+        // If assigned to role
+        if ($approval->assigned_to_role) {
+            $roleUsers = User::role($approval->assigned_to_role)->get();
+            foreach ($roleUsers as $user) {
+                $approvers[] = $user;
+            }
+        }
+
+        return $approvers;
+    }
+
+    /**
+     * Get document creator.
+     *
+     * @param Model $approvable
+     * @return User|null
+     */
+    private function getDocumentCreator(Model $approvable): ?User
+    {
+        // Try to get creator from created_by_user_id
+        if (isset($approvable->created_by_user_id)) {
+            return User::find($approvable->created_by_user_id);
+        }
+
+        // Try to get creator from creator relationship
+        if (method_exists($approvable, 'creator')) {
+            return $approvable->creator;
+        }
+
+        // Try to get from created_by_user relationship
+        if (method_exists($approvable, 'createdByUser')) {
+            return $approvable->createdByUser;
         }
 
         return null;

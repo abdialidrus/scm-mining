@@ -22,3 +22,4 @@ require __DIR__ . '/goods_receipts.php';
 require __DIR__ . '/put_aways.php';
 require __DIR__ . '/picking_orders.php';
 require __DIR__ . '/stock_reports.php';
+require __DIR__ . '/notifications.php';

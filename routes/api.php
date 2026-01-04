@@ -15,8 +15,11 @@ use App\Http\Controllers\Api\RoleController;
 use App\Http\Controllers\Api\SupplierController;
 use App\Http\Controllers\Api\UomController;
 use App\Http\Controllers\Api\UserController;
+use App\Http\Controllers\Api\UserDeviceController;
 use App\Http\Controllers\Api\WarehouseController;
 use App\Http\Controllers\Api\WarehouseLocationController;
+use App\Http\Controllers\NotificationController;
+use App\Http\Controllers\NotificationPreferenceController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -169,5 +172,30 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::prefix('approvals')->group(function () {
         Route::get('/my-pending', [ApprovalController::class, 'myPendingApprovals']);
         Route::get('/statistics', [ApprovalController::class, 'statistics']);
+    });
+
+    // User Devices (Push Notifications)
+    Route::prefix('user-devices')->group(function () {
+        Route::post('/register', [UserDeviceController::class, 'register']);
+        Route::get('/', [UserDeviceController::class, 'index']);
+        Route::delete('/{id}', [UserDeviceController::class, 'deactivate']);
+    });
+
+    // Notifications
+    Route::prefix('notifications')->group(function () {
+        Route::get('/', [NotificationController::class, 'index']);
+        Route::get('/unread-count', [NotificationController::class, 'unreadCount']);
+        Route::get('/statistics', [NotificationController::class, 'statistics']);
+        Route::post('/{id}/read', [NotificationController::class, 'markAsRead']);
+        Route::post('/read-all', [NotificationController::class, 'markAllAsRead']);
+        Route::delete('/{id}', [NotificationController::class, 'destroy']);
+    });
+
+    // Notification Preferences
+    Route::prefix('notification-preferences')->group(function () {
+        Route::get('/', [NotificationPreferenceController::class, 'index']);
+        Route::put('/', [NotificationPreferenceController::class, 'update']);
+        Route::get('/types', [NotificationPreferenceController::class, 'types']);
+        Route::post('/reset', [NotificationPreferenceController::class, 'reset']);
     });
 });

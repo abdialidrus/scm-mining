@@ -15,6 +15,7 @@ import { getApprovalStatistics } from '@/services/approvalApi';
 import { type NavItem } from '@/types';
 import { Link, usePage } from '@inertiajs/vue3';
 import {
+    Bell,
     CheckCircle,
     FileText,
     GitBranch,
@@ -77,6 +78,7 @@ const canShowMyApprovals =
     isSuperAdmin || isDeptHead || isFinance || isGm || isDirector;
 
 const pendingApprovalsCount = ref(0);
+const unreadNotificationsCount = ref(0);
 
 const mainNavItems: NavItem[] = [
     {
@@ -95,6 +97,14 @@ if (canShowMyApprovals) {
     });
 }
 
+// Notifications menu - available for all users
+mainNavItems.push({
+    title: 'Notifications',
+    href: '/notifications',
+    icon: Bell,
+    badge: unreadNotificationsCount,
+});
+
 // Load pending approvals count
 onMounted(async () => {
     if (canShowMyApprovals) {
@@ -104,6 +114,19 @@ onMounted(async () => {
         } catch (error) {
             console.error('Failed to load approval statistics:', error);
         }
+    }
+
+    // Load unread notifications count
+    try {
+        const response = await fetch('/api/notifications/unread-count', {
+            credentials: 'include',
+        });
+        if (response.ok) {
+            const data = await response.json();
+            unreadNotificationsCount.value = data.count || 0;
+        }
+    } catch (error) {
+        console.error('Failed to load unread notifications count:', error);
     }
 });
 
