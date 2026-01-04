@@ -15,6 +15,7 @@ import { getApprovalStatistics } from '@/services/approvalApi';
 import { type NavItem } from '@/types';
 import { Link, usePage } from '@inertiajs/vue3';
 import {
+    BarChart3,
     Bell,
     CheckCircle,
     FileText,
@@ -104,6 +105,15 @@ mainNavItems.push({
     icon: Bell,
     badge: unreadNotificationsCount,
 });
+
+// Reports menu - available for management, procurement, and finance roles
+if (isSuperAdmin || isGm || isDirector || isProcurement || isFinance) {
+    mainNavItems.push({
+        title: 'Reports',
+        href: '/reports',
+        icon: BarChart3,
+    });
+}
 
 // Load pending approvals count
 onMounted(async () => {

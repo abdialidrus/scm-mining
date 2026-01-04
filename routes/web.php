@@ -12,6 +12,10 @@ Route::get('dashboard', function () {
     return Inertia::render('Dashboard');
 })->middleware(['auth', 'verified'])->name('dashboard');
 
+Route::get('reports', function () {
+    return Inertia::render('Reports/Index');
+})->middleware(['auth', 'verified'])->name('reports');
+
 require __DIR__ . '/settings.php';
 require __DIR__ . '/approval_workflows.php';
 require __DIR__ . '/approvals.php';

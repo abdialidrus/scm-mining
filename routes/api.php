@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Api\ApprovalController;
 use App\Http\Controllers\Api\ApprovalWorkflowController;
+use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\DepartmentController;
 use App\Http\Controllers\Api\GoodsReceiptController;
 use App\Http\Controllers\Api\ItemCategoryController;
@@ -26,6 +27,19 @@ use Illuminate\Support\Facades\Route;
 Route::middleware('auth:sanctum')->group(function () {
     Route::get('/user', function (Request $request) {
         return $request->user();
+    });
+
+    // Dashboard & Analytics
+    Route::prefix('dashboard')->group(function () {
+        Route::get('/', [DashboardController::class, 'index']);
+        Route::get('/kpis', [DashboardController::class, 'kpis']);
+        Route::get('/procurement-analytics', [DashboardController::class, 'procurementAnalytics']);
+        Route::get('/inventory-analytics', [DashboardController::class, 'inventoryAnalytics']);
+        Route::get('/financial-analytics', [DashboardController::class, 'financialAnalytics']);
+        Route::get('/charts/{chartType}', [DashboardController::class, 'chartData']);
+        Route::get('/goods-receipt-performance', [DashboardController::class, 'goodsReceiptPerformance']);
+        Route::get('/putaway-efficiency', [DashboardController::class, 'putAwayEfficiency']);
+        Route::post('/clear-cache', [DashboardController::class, 'clearCache']);
     });
 
     // Items
