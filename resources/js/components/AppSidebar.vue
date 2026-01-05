@@ -21,6 +21,7 @@ import {
     FileText,
     GitBranch,
     LayoutGrid,
+    MapPin,
     Package,
     PackageCheck,
     PackageMinus,
@@ -211,6 +212,11 @@ function getMasterDataNavItems(): NavItem[] {
             title: 'Warehouses',
             href: '/master-data/warehouses',
             icon: Warehouse,
+        });
+        items.push({
+            title: 'Warehouse Locations',
+            href: '/master-data/warehouse-locations',
+            icon: MapPin,
         });
     }
 

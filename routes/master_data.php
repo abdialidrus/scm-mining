@@ -123,4 +123,27 @@ Route::middleware(['auth', 'verified'])->group(function () {
             'warehouseId' => $warehouse->id,
         ]);
     })->name('master-data.warehouses.show');
+
+    // Warehouse Locations
+    Route::get('/master-data/warehouse-locations', function () {
+        return Inertia::render('master-data/warehouse-locations/Index');
+    })->name('master-data.warehouse-locations.index');
+
+    Route::get('/master-data/warehouse-locations/create', function () {
+        return Inertia::render('master-data/warehouse-locations/Form', [
+            'locationId' => null,
+        ]);
+    })->name('master-data.warehouse-locations.create');
+
+    Route::get('/master-data/warehouse-locations/{warehouse_location}/edit', function (\App\Models\WarehouseLocation $warehouse_location) {
+        return Inertia::render('master-data/warehouse-locations/Form', [
+            'locationId' => $warehouse_location->id,
+        ]);
+    })->name('master-data.warehouse-locations.edit');
+
+    Route::get('/master-data/warehouse-locations/{warehouse_location}', function (\App\Models\WarehouseLocation $warehouse_location) {
+        return Inertia::render('master-data/warehouse-locations/Show', [
+            'locationId' => $warehouse_location->id,
+        ]);
+    })->name('master-data.warehouse-locations.show');
 });

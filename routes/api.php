@@ -166,7 +166,17 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::put('/warehouses/{warehouse}', [WarehouseController::class, 'update']);
     Route::delete('/warehouses/{warehouse}', [WarehouseController::class, 'destroy']);
 
+    // Warehouse Locations CRUD
     Route::get('/warehouse-locations', [WarehouseLocationController::class, 'index']);
+    Route::post('/warehouse-locations', [WarehouseLocationController::class, 'store']);
+    Route::get('/warehouse-locations/{warehouse_location}', [WarehouseLocationController::class, 'show']);
+    Route::put('/warehouse-locations/{warehouse_location}', [WarehouseLocationController::class, 'update']);
+    Route::delete('/warehouse-locations/{warehouse_location}', [WarehouseLocationController::class, 'destroy']);
+
+    // Warehouse Location utilities
+    Route::get('/warehouse-locations/{warehouse_location}/stock-summary', [WarehouseLocationController::class, 'stockSummary']);
+    Route::get('/warehouse-locations/{warehouse_location}/movements', [WarehouseLocationController::class, 'recentMovements']);
+    Route::get('/warehouse-locations/{warehouse_location}/stock-by-item', [WarehouseLocationController::class, 'stockByItem']);
 
     // Stock checking endpoint for picking order form
     Route::get('/stock/location/{location}/item/{item}', function (int $location, int $item, Request $request) {

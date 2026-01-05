@@ -79,13 +79,14 @@ This document outlines the strategic development roadmap for the SCM Mining appl
 
 ### Critical Gaps (Missing Essential Features)
 
-| Category                  | Current Coverage | Gap                           |
-| ------------------------- | ---------------- | ----------------------------- |
-| **Notifications**         | 20%              | No email/push notifications   |
-| **Reporting & Analytics** | 60%              | Limited executive dashboards  |
-| **Integration**           | 30%              | No accounting/ERP integration |
-| **Documentation**         | 50%              | No file attachments           |
-| **Mobile Experience**     | 40%              | No PWA/mobile optimization    |
+| Category                     | Current Coverage | Gap                                           |
+| ---------------------------- | ---------------- | --------------------------------------------- |
+| **Notifications**            | 20%              | No email/push notifications                   |
+| **Reporting & Analytics**    | 75%              | Limited executive dashboards (improved!)      |
+| **Integration**              | 30%              | No accounting/ERP integration                 |
+| **Documentation**            | 50%              | No file attachments                           |
+| **Mobile Experience**        | 40%              | No PWA/mobile optimization                    |
+| **Warehouse Location UI** ⚠️ | 0%               | **No UI to manage locations (critical gap!)** |
 
 ### Functional Gaps by Module
 
@@ -96,12 +97,16 @@ This document outlines the strategic development roadmap for the SCM Mining appl
 - ❌ Supplier performance metrics
 - ❌ PR to PO conversion optimization
 
-#### Warehouse Module (90% Complete)
+#### Warehouse Module (75% Complete)
 
+- ❌ **Warehouse Location Management UI** (Critical Gap - See Phase 1.4)
+- ❌ Location capacity & occupancy tracking
+- ❌ Zone-based location hierarchy
+- ❌ Location performance metrics
 - ❌ Quality inspection process
 - ❌ Inventory forecasting
 - ❌ Cycle counting
-- ❌ ABC analysis
+- ❌ ABC analysis (Partial - backend only)
 
 #### Approval Module (95% Complete)
 
@@ -123,9 +128,9 @@ This document outlines the strategic development roadmap for the SCM Mining appl
 
 ## PHASE 1: Critical Missing Features (Priority: 🔴 HIGH)
 
-**Timeline:** Week 1-2  
-**Total Effort:** 14-20 hours  
-**Impact:** Immediate user satisfaction improvement
+**Timeline:** Week 1-3  
+**Total Effort:** 28-38 hours  
+**Impact:** Immediate user satisfaction improvement & operational efficiency
 
 ### 1.1 Email Notifications System ⚡
 
@@ -362,7 +367,369 @@ routes/reports.php
 
 ---
 
-### 1.3 Document Attachments 📎
+### 1.4 Warehouse Location Management UI 📦
+
+**Effort Estimate:** 14-18 hours  
+**Business Value:** ⭐⭐⭐⭐⭐
+
+#### Current State
+
+**✅ Backend Complete:**
+
+- Database schema exists (`warehouse_locations` table)
+- API endpoints functional (`WarehouseLocationController`)
+- Model relationships working (`WarehouseLocation`, `Warehouse`)
+- Business logic implemented (types: RECEIVING, STORAGE)
+- Used internally by Put Away, Picking Order, Stock Reports
+
+**❌ Frontend Missing:**
+
+- No UI to manage warehouse locations
+- No way to create/edit/delete locations
+- No visibility into location hierarchy
+- No location utilization dashboard
+- Manual database entry required for new locations
+
+**Impact:**
+Users must ask developers to create new storage locations via database seeds. This is inefficient and blocks warehouse operations.
+
+---
+
+#### Features to Implement
+
+**A. Location Master Data CRUD**
+
+**Route:** `/master-data/warehouse-locations`
+
+**Permissions:** `super_admin`, `warehouse`, `warehouse_supervisor`
+
+**Features:**
+
+1. **List All Locations**
+    - Table with: Code, Name, Type, Warehouse, Active status
+    - Filter by: Warehouse, Type (RECEIVING/STORAGE), Active status
+    - Search by: Code, Name
+    - Pagination
+    - Click row to view details
+
+2. **Create Location**
+    - Form fields:
+        - Warehouse (dropdown - required)
+        - Parent Location (dropdown - optional, for hierarchy)
+        - Type (radio: RECEIVING / STORAGE - required)
+        - Code (text - required, unique per warehouse)
+        - Name (text - required)
+        - Capacity (number - optional, for future capacity management)
+        - Max Weight (number - optional)
+        - Is Default (checkbox)
+        - Is Active (checkbox - default true)
+        - Notes (textarea)
+    - Validation:
+        - Only one default RECEIVING per warehouse (enforced by DB)
+        - Code must be unique within warehouse
+        - Parent location must be in same warehouse
+
+3. **Edit Location**
+    - Same form as create
+    - Warning if location has stock (show current qty)
+    - Disable warehouse change if location has stock
+
+4. **View Location Details**
+    - Basic info card
+    - Current stock summary (items count, total qty, total value)
+    - Stock by item table
+    - Recent movements (last 20)
+    - Child locations (if hierarchical)
+    - Quick actions: Edit, Deactivate/Activate
+
+5. **Delete/Deactivate Location**
+    - Soft delete by setting `is_active = false`
+    - Block if location has stock balance > 0
+    - Show warning with affected documents
+
+**B. Location Hierarchy Visualization**
+
+**Route:** `/warehouse/location-tree?warehouse_id=X`
+
+**Features:**
+
+1. **Tree View**
+    - Visual hierarchy (parent → children)
+    - Expand/collapse nodes
+    - Color coding by type
+    - Icons for RECEIVING vs STORAGE
+
+2. **Quick Stats per Node**
+    - Items stored: X
+    - Current utilization: Y%
+    - Available capacity: Z
+
+3. **Drag & Drop (Phase 2)**
+    - Reorganize hierarchy
+    - Change parent location
+    - Validation on drop
+
+**C. Location Utilization Dashboard**
+
+**Route:** `/warehouse/location-utilization`
+
+**Metrics:**
+
+1. **Overview Cards**
+    - Total locations
+    - Active locations
+    - Empty locations (no stock)
+    - Over-capacity locations (if capacity defined)
+
+2. **Charts**
+    - Top 10 locations by item count (bar chart)
+    - Top 10 locations by stock value (bar chart)
+    - Location type distribution (pie chart)
+    - Utilization heat map (color-coded warehouse floor plan - Phase 3)
+
+3. **Data Tables**
+    - Underutilized locations (< 30% capacity)
+    - Over-stocked locations (> 90% capacity)
+    - Empty locations (candidates for deactivation)
+
+**D. Stock Movement by Location Report**
+
+**Existing in:** `/stock-reports` (already implemented)
+
+**Enhancement:**
+
+- Add location filter (already exists ✅)
+- Add location-to-location transfer report
+- Export to Excel
+
+---
+
+#### Technical Implementation
+
+**1. Frontend Files to Create**
+
+```
+resources/js/pages/master-data/warehouse-locations/
+  ├── Index.vue          (List all locations)
+  ├── Form.vue           (Create/Edit location)
+  ├── Show.vue           (View location details)
+  └── Tree.vue           (Hierarchical tree view)
+
+resources/js/pages/warehouse/
+  ├── LocationUtilization.vue  (Dashboard)
+  └── LocationTransfers.vue    (Transfer report)
+
+resources/js/components/warehouse/
+  ├── LocationCard.vue         (Reusable location display)
+  ├── LocationSelector.vue     (Dropdown with search)
+  └── LocationTreeNode.vue     (Tree node component)
+```
+
+**2. Backend Files to Create/Update**
+
+```
+app/Http/Controllers/Api/WarehouseLocationController.php (✅ exists, may need updates)
+app/Http/Requests/Api/WarehouseLocation/
+  ├── StoreWarehouseLocationRequest.php  (NEW)
+  └── UpdateWarehouseLocationRequest.php (NEW)
+
+app/Services/Warehouse/
+  └── LocationService.php  (NEW - business logic)
+
+app/Policies/WarehouseLocationPolicy.php (✅ exists)
+
+routes/master_data.php  (ADD location routes)
+routes/api.php          (UPDATE location API)
+```
+
+**3. Database Schema Enhancement**
+
+Current schema is sufficient, but add these optional columns for Phase 2:
+
+```sql
+ALTER TABLE warehouse_locations ADD COLUMN IF NOT EXISTS capacity DECIMAL(15,2);
+ALTER TABLE warehouse_locations ADD COLUMN IF NOT EXISTS max_weight DECIMAL(15,2);
+ALTER TABLE warehouse_locations ADD COLUMN IF NOT EXISTS notes TEXT;
+ALTER TABLE warehouse_locations ADD COLUMN IF NOT EXISTS floor_plan_coordinates JSONB;
+```
+
+**4. API Endpoints**
+
+```
+# Master Data CRUD
+GET    /api/warehouse-locations              (✅ exists)
+POST   /api/warehouse-locations              (NEW)
+GET    /api/warehouse-locations/{id}         (NEW)
+PUT    /api/warehouse-locations/{id}         (NEW)
+DELETE /api/warehouse-locations/{id}         (NEW)
+
+# Warehouse-specific locations (already used by forms)
+GET    /api/warehouses/{id}/locations        (✅ exists)
+
+# Location utilization
+GET    /api/warehouse-locations/{id}/stock-summary  (NEW)
+GET    /api/warehouse-locations/{id}/movements      (NEW)
+GET    /api/warehouse-locations/utilization         (NEW)
+
+# Hierarchy
+GET    /api/warehouses/{id}/location-tree          (NEW)
+```
+
+**5. Integration Points**
+
+**Existing Usage (No Changes Needed):**
+
+- ✅ Put Away Form: Uses locations for destination selection
+- ✅ Picking Order Form: Uses locations for source selection
+- ✅ Stock Reports: Filters by location
+- ✅ GR Posting: Auto-creates stock in receiving location
+
+**New Integrations:**
+
+- Warehouse Setup Wizard: Create locations during warehouse creation
+- Stock Transfer Document: Move between locations (Phase 2)
+- Cycle Count: Schedule counts per location (Phase 2)
+
+---
+
+#### UI/UX Mockup
+
+**Location List Page:**
+
+```
+┌────────────────────────────────────────────────────────────┐
+│ Warehouse Locations                         [+ Create]     │
+├────────────────────────────────────────────────────────────┤
+│ Filters:                                                   │
+│ [Warehouse: All ▼]  [Type: All ▼]  [Status: Active ▼]    │
+│ [Search by code or name...]                                │
+├────────────────────────────────────────────────────────────┤
+│ Code    │ Name              │ Type      │ Warehouse │ ✓   │
+├─────────┼───────────────────┼───────────┼───────────┼─────┤
+│ RCV-01  │ Main Receiving    │ 🟦 RCV   │ WH-MAIN   │ ✓  │
+│ ZONE-A  │ Spare Parts Zone  │ 🟩 STO   │ WH-MAIN   │ ✓  │
+│ ZONE-B  │ Consumables Zone  │ 🟩 STO   │ WH-MAIN   │ ✓  │
+│ ZONE-C  │ PPE & Safety      │ 🟩 STO   │ WH-MAIN   │ ✓  │
+│ QUARANTINE│ Quarantine Area │ 🟩 STO   │ WH-MAIN   │ ✓  │
+└────────────────────────────────────────────────────────────┘
+```
+
+**Location Detail Page:**
+
+```
+┌────────────────────────────────────────────────────────────┐
+│ ← Back                ZONE-A                    [Edit] [⚙] │
+├────────────────────────────────────────────────────────────┤
+│ 📦 Spare Parts Zone                                        │
+│ WH-MAIN • STORAGE • Active                                 │
+├────────────────────────────────────────────────────────────┤
+│ Current Stock Summary                                      │
+│ ┌───────────┬───────────┬───────────────┐                │
+│ │ 45 Items  │ 150 Units │ Rp 1.2M Value │                │
+│ └───────────┴───────────┴───────────────┘                │
+├────────────────────────────────────────────────────────────┤
+│ Stock by Item                                              │
+│ Item SKU     │ Item Name        │ Qty    │ UOM │ Value   │
+│ SPR-001      │ Bearing XYZ      │ 10     │ PCS │ 50K     │
+│ SPR-002      │ Seal Kit ABC     │ 25     │ SET │ 120K    │
+│ ...                                                        │
+├────────────────────────────────────────────────────────────┤
+│ Recent Movements (Last 20)                                 │
+│ Date       │ Type        │ Item      │ Qty  │ Reference  │
+│ 2026-01-05 │ PUT_AWAY    │ SPR-001   │ +5   │ PA-123     │
+│ 2026-01-04 │ PICKING     │ SPR-002   │ -3   │ PKO-456    │
+└────────────────────────────────────────────────────────────┘
+```
+
+**Location Tree View:**
+
+```
+┌────────────────────────────────────────────────────────────┐
+│ Warehouse: [WH-MAIN ▼]                                     │
+├────────────────────────────────────────────────────────────┤
+│ 📦 Main Warehouse                                          │
+│   ├─ 🟦 RCV-01: Main Receiving (5 items, 10 units)       │
+│   └─ 🟩 Storage Zones                                      │
+│       ├─ ZONE-A: Spare Parts (45 items, 150 units)       │
+│       │   ├─ ZONE-A-1: Heavy Equipment Parts             │
+│       │   └─ ZONE-A-2: Light Equipment Parts             │
+│       ├─ ZONE-B: Consumables (30 items, 500 units)       │
+│       └─ ZONE-C: PPE & Safety (20 items, 200 units)      │
+└────────────────────────────────────────────────────────────┘
+```
+
+---
+
+#### Implementation Steps
+
+**Phase 1.4A: Basic CRUD (8-10 hours)** ✅ COMPLETE
+
+1. ✅ Backend: Create request validation classes (1h)
+2. ✅ Backend: Update WarehouseLocationController with CRUD methods (2h)
+3. ✅ Backend: Create LocationService for business logic (1h)
+4. ✅ Frontend: Create Index.vue (list page) (2h)
+5. ✅ Frontend: Create Form.vue (create/edit) (2h)
+6. ✅ Frontend: Add routes in master_data.php (0.5h)
+7. ✅ Testing: Manual testing of CRUD operations (1h)
+
+**Phase 1.4B: Location Details & Stock View (4-5 hours)** ✅ COMPLETE
+
+1. ✅ Backend: Add stock summary API endpoint (1h)
+2. ✅ Backend: Add recent movements API endpoint (1h)
+3. ✅ Backend: Add stock by item API endpoint (1h)
+4. ✅ Frontend: Create Show.vue (detail page) (2h)
+5. ✅ Frontend: Add stock by item table with search (1h)
+6. ✅ Testing: Verify stock display accuracy (1h)
+
+**Phase 1.4C: Location Hierarchy (Optional - Phase 2)**
+
+- Tree view visualization
+- Drag & drop reorganization
+- Parent-child relationship management
+
+**Phase 1.4D: Utilization Dashboard (Optional - Phase 2)**
+
+- Capacity tracking
+- Utilization metrics
+- Heat map visualization
+
+---
+
+#### Business Value
+
+**Immediate Benefits:**
+
+- ✅ Self-service location management (no developer needed)
+- ✅ Better visibility into warehouse organization
+- ✅ Faster warehouse setup for new operations
+- ✅ Foundation for advanced WMS features
+
+**Long-term Value:**
+
+- Capacity planning
+- Location optimization
+- Warehouse efficiency metrics
+- Integration with WMS/ERP systems
+
+---
+
+#### Dependencies
+
+**Prerequisites:**
+
+- ✅ Warehouse model (exists)
+- ✅ Stock balance tracking (exists)
+- ✅ Permission system (exists)
+
+**Blocks (if not implemented):**
+
+- Future: Stock transfers between locations
+- Future: Cycle counting
+- Future: Location-based picking optimization
+
+---
+
+### 1.5 Document Attachments 📎
 
 **Effort Estimate:** 6-8 hours  
 **Business Value:** ⭐⭐⭐⭐
@@ -437,11 +804,235 @@ GET    /api/{module}/{id}/attachments/zip    # Download all as ZIP
 
 ## PHASE 2: High-Value Features (Priority: 🟠 MEDIUM-HIGH)
 
-**Timeline:** Week 3-6  
-**Total Effort:** 52-68 hours  
+**Timeline:** Week 4-8  
+**Total Effort:** 72-98 hours  
 **Impact:** Significant business value & competitive advantage
 
-### 2.1 Budget Management Module 💰
+### 2.1 Advanced Warehouse Management 🏭
+
+**Effort Estimate:** 20-30 hours  
+**Business Value:** ⭐⭐⭐⭐⭐
+
+#### Sub-Features
+
+**A. Location Capacity Management**
+
+**Purpose:** Track and optimize warehouse space utilization
+
+**Features:**
+
+- Define capacity per location (volume, weight, pallet count)
+- Real-time capacity utilization percentage
+- Alerts when nearing capacity (80%, 90%, 100%)
+- Capacity planning tools
+- Suggest optimal stock placement
+
+**Database Schema:**
+
+```sql
+ALTER TABLE warehouse_locations ADD COLUMN:
+  - capacity_volume DECIMAL(15,2)      -- cubic meters
+  - capacity_weight DECIMAL(15,2)      -- kg
+  - capacity_pallet_count INT          -- number of pallets
+  - current_volume_used DECIMAL(15,2)
+  - current_weight_used DECIMAL(15,2)
+  - current_pallet_count INT
+```
+
+**B. Zone-Based Location Hierarchy**
+
+**Purpose:** Organize warehouse into logical zones and sub-zones
+
+**Features:**
+
+- Multi-level hierarchy: Warehouse → Zone → Aisle → Rack → Shelf → Bin
+- Flexible depth (2-6 levels)
+- Zone types: Fast-moving, Slow-moving, Bulk, Hazmat, Cold storage
+- Zone-based picking strategies
+- Visual warehouse map
+
+**Example Hierarchy:**
+
+```
+WH-MAIN
+  └─ ZONE-A (Heavy Equipment)
+      ├─ AISLE-1
+      │   ├─ RACK-A1
+      │   │   ├─ SHELF-1
+      │   │   └─ SHELF-2
+      │   └─ RACK-A2
+      └─ AISLE-2
+```
+
+**Database Enhancement:**
+
+```sql
+ALTER TABLE warehouse_locations ADD COLUMN:
+  - level INT                          -- depth in hierarchy (1-6)
+  - zone_type VARCHAR(50)              -- fast_moving, bulk, hazmat, etc.
+  - aisle VARCHAR(10)
+  - rack VARCHAR(10)
+  - shelf VARCHAR(10)
+  - bin VARCHAR(10)
+  - floor_plan_x INT                   -- X coordinate on map
+  - floor_plan_y INT                   -- Y coordinate on map
+```
+
+**C. Stock Transfer Between Locations**
+
+**Purpose:** Move stock within warehouse without external transaction
+
+**Features:**
+
+- Create transfer document (similar to Put Away)
+- Transfer types:
+    - Relocation (optimization)
+    - Consolidation (merge bins)
+    - Replenishment (fast-moving → picking area)
+- Approval workflow (optional, for sensitive items)
+- Barcode scanning support
+- Batch transfer
+
+**New Document Type:**
+
+```
+Stock Transfer (ST)
+  - ST Number: ST-YYYYMM-XXXX
+  - Status: DRAFT, POSTED, CANCELLED
+  - Transfer Type: RELOCATION, CONSOLIDATION, REPLENISHMENT
+  - From Location
+  - To Location
+  - Lines: Item, Qty, UOM, Reason
+```
+
+**Database Schema:**
+
+```sql
+CREATE TABLE stock_transfers (
+  id BIGSERIAL PRIMARY KEY,
+  st_number VARCHAR(50) UNIQUE,
+  warehouse_id BIGINT REFERENCES warehouses(id),
+  transfer_type VARCHAR(30),
+  status VARCHAR(30),
+  transfer_at TIMESTAMP,
+  created_by_user_id BIGINT,
+  posted_at TIMESTAMP,
+  posted_by_user_id BIGINT,
+  reason TEXT,
+  remarks TEXT
+);
+
+CREATE TABLE stock_transfer_lines (
+  id BIGSERIAL PRIMARY KEY,
+  stock_transfer_id BIGINT REFERENCES stock_transfers(id),
+  item_id BIGINT REFERENCES items(id),
+  uom_id BIGINT REFERENCES uoms(id),
+  source_location_id BIGINT REFERENCES warehouse_locations(id),
+  destination_location_id BIGINT REFERENCES warehouse_locations(id),
+  qty DECIMAL(18,4),
+  remarks TEXT
+);
+```
+
+**D. Location Performance Metrics**
+
+**Purpose:** Measure and optimize location efficiency
+
+**Metrics:**
+
+1. **Turnover Rate per Location**
+    - Items picked per day
+    - Stock age in location
+    - Slow-moving vs fast-moving classification
+
+2. **Picking Efficiency**
+    - Average picking time per location
+    - Pick accuracy rate
+    - Travel distance to location
+
+3. **Space Efficiency**
+    - Utilization percentage
+    - Empty days (location idle)
+    - Items per square meter
+
+4. **Location Quality Score**
+    - Damage rate (items damaged in location)
+    - Accuracy rate (cycle count accuracy)
+    - Accessibility score
+
+**Dashboard:**
+
+```
+┌────────────────────────────────────────────────────────────┐
+│ Location Performance Dashboard                             │
+├────────────────────────────────────────────────────────────┤
+│ Top Performers                   │ Bottom Performers       │
+│ ┌────────────────────────────┐   │ ┌───────────────────┐  │
+│ │ ZONE-A: 95% efficient      │   │ │ ZONE-D: 45%      │  │
+│ │ • 50 picks/day             │   │ │ • 5 picks/day     │  │
+│ │ • 98% accuracy             │   │ │ • 80% accuracy    │  │
+│ └────────────────────────────┘   │ └───────────────────┘  │
+├────────────────────────────────────────────────────────────┤
+│ Location Utilization Heatmap                               │
+│ [Interactive warehouse floor plan with color-coded zones]  │
+└────────────────────────────────────────────────────────────┘
+```
+
+**E. Cycle Counting**
+
+**Purpose:** Regular inventory verification without full stocktake
+
+**Features:**
+
+- Cycle count schedule (daily, weekly, monthly)
+- Location-based counting (count one zone at a time)
+- ABC classification priority (count A items more frequently)
+- Mobile-friendly counting interface
+- Variance reporting and adjustment
+- Automatic stock adjustment on approval
+
+**Workflow:**
+
+1. System generates cycle count task
+2. Warehouse staff counts physical stock
+3. Enter count into system
+4. System calculates variance (system vs actual)
+5. If variance > threshold, require approval
+6. On approval, create stock adjustment
+
+**Database Schema:**
+
+```sql
+CREATE TABLE cycle_counts (
+  id BIGSERIAL PRIMARY KEY,
+  count_number VARCHAR(50) UNIQUE,
+  warehouse_id BIGINT,
+  location_id BIGINT,
+  count_date DATE,
+  status VARCHAR(30), -- SCHEDULED, IN_PROGRESS, COMPLETED, CANCELLED
+  assigned_to_user_id BIGINT,
+  completed_at TIMESTAMP,
+  approved_by_user_id BIGINT,
+  approved_at TIMESTAMP
+);
+
+CREATE TABLE cycle_count_lines (
+  id BIGSERIAL PRIMARY KEY,
+  cycle_count_id BIGINT REFERENCES cycle_counts(id),
+  item_id BIGINT,
+  uom_id BIGINT,
+  system_qty DECIMAL(18,4),      -- qty per system
+  counted_qty DECIMAL(18,4),      -- qty counted
+  variance_qty DECIMAL(18,4),     -- difference
+  variance_value DECIMAL(20,2),   -- financial impact
+  reason TEXT,
+  notes TEXT
+);
+```
+
+---
+
+### 2.2 Budget Management Module 💰
 
 **Effort Estimate:** 16-20 hours  
 **Business Value:** ⭐⭐⭐⭐⭐
