@@ -16,17 +16,14 @@ class InventoryAnalytics
      */
     public static function getInventorySnapshot(): array
     {
-        $totalItems = StockBalance::distinct('item_id')->count('item_id');
-        $totalQuantity = StockBalance::sum('qty_on_hand');
-
-        // Note: stock_balances doesn't have unit_price, so we can't calculate total value
-        // Total value would need to be calculated from other sources (e.g., latest PO prices)
+        // Use the enhanced snapshot logic
+        $enhanced = self::getEnhancedInventorySnapshot();
 
         return [
-            'total_items' => $totalItems,
-            'total_quantity' => round($totalQuantity, 2),
-            'total_value' => 0, // Not available in stock_balances
-            'low_stock_items' => 0, // Not available - would need reorder_point from items or separate table
+            'total_items' => $enhanced['total_items'],
+            'total_quantity' => $enhanced['total_quantity'],
+            'total_value' => $enhanced['total_value'],
+            'low_stock_items' => $enhanced['low_stock_items'],
         ];
     }
 
@@ -77,22 +74,50 @@ class InventoryAnalytics
      */
     public static function getWarehouseDistribution(): array
     {
-        $distribution = StockBalance::select(
-            'warehouses.name as warehouse_name',
-            DB::raw('COUNT(DISTINCT stock_balances.item_id) as item_count'),
-            DB::raw('SUM(stock_balances.qty_on_hand) as total_quantity')
-        )
+        // Get valuation data
+        $valuation = self::getStockValuation();
+
+        // Group by warehouse
+        $warehouseData = DB::table('stock_balances')
+            ->select(
+                'warehouses.id as warehouse_id',
+                'warehouses.name as warehouse_name',
+                DB::raw('COUNT(DISTINCT stock_balances.item_id) as item_count'),
+                DB::raw('SUM(stock_balances.qty_on_hand) as total_quantity')
+            )
             ->join('warehouse_locations', 'stock_balances.location_id', '=', 'warehouse_locations.id')
             ->join('warehouses', 'warehouse_locations.warehouse_id', '=', 'warehouses.id')
             ->groupBy('warehouses.id', 'warehouses.name')
             ->orderBy('total_quantity', 'DESC')
             ->get();
 
+        // Calculate values per warehouse
+        $warehouseValues = [];
+        foreach ($warehouseData as $warehouse) {
+            // Get aggregated items in this warehouse
+            $itemsInWarehouse = DB::table('stock_balances')
+                ->select('stock_balances.item_id', DB::raw('SUM(stock_balances.qty_on_hand) as total_qty'))
+                ->join('warehouse_locations', 'stock_balances.location_id', '=', 'warehouse_locations.id')
+                ->where('warehouse_locations.warehouse_id', $warehouse->warehouse_id)
+                ->groupBy('stock_balances.item_id')
+                ->get();
+
+            $totalValue = 0;
+            foreach ($itemsInWarehouse as $item) {
+                // Find price from valuation
+                $itemValuation = collect($valuation['items'])->firstWhere('item_id', $item->item_id);
+                if ($itemValuation) {
+                    $totalValue += $item->total_qty * $itemValuation['avg_unit_price'];
+                }
+            }
+            $warehouseValues[] = round($totalValue, 2);
+        }
+
         return [
-            'warehouses' => $distribution->pluck('warehouse_name'),
-            'item_counts' => $distribution->pluck('item_count'),
-            'quantities' => $distribution->pluck('total_quantity'),
-            'values' => [], // Not available without unit prices
+            'warehouses' => $warehouseData->pluck('warehouse_name'),
+            'item_counts' => $warehouseData->pluck('item_count'),
+            'quantities' => $warehouseData->pluck('total_quantity')->map(fn($q) => number_format($q, 4, '.', '')),
+            'values' => $warehouseValues,
         ];
     }
 
@@ -101,22 +126,23 @@ class InventoryAnalytics
      */
     public static function getTopItemsByValue(int $limit = 10): array
     {
-        // Since stock_balances doesn't have unit_price, we order by quantity instead
-        $items = StockBalance::select(
-            'items.sku as code',
-            'items.name',
-            DB::raw('SUM(stock_balances.qty_on_hand) as total_quantity')
-        )
-            ->join('items', 'stock_balances.item_id', '=', 'items.id')
-            ->groupBy('items.id', 'items.sku', 'items.name')
-            ->orderBy('total_quantity', 'DESC')
-            ->limit($limit)
-            ->get();
+        // Use stock valuation logic to get items with prices
+        $valuation = self::getStockValuation();
+
+        // Sort items by value (qty * price)
+        $sortedItems = collect($valuation['items'])
+            ->sortByDesc(function ($item) {
+                return $item['quantity'] * $item['avg_unit_price'];
+            })
+            ->take($limit)
+            ->values();
 
         return [
-            'items' => $items->pluck('name'),
-            'quantities' => $items->pluck('total_quantity'),
-            'values' => [], // Not available without unit prices
+            'items' => $sortedItems->pluck('name'),
+            'quantities' => $sortedItems->pluck('quantity')->map(fn($q) => number_format($q, 4, '.', '')),
+            'values' => $sortedItems->map(function ($item) {
+                return round($item['quantity'] * $item['avg_unit_price'], 2);
+            }),
         ];
     }
 
@@ -125,12 +151,11 @@ class InventoryAnalytics
      */
     public static function getLowStockItems(int $limit = 20): array
     {
-        // Note: stock_balances doesn't have reorder_point
-        // This would need to be implemented with a separate reorder_point configuration
-        // For now, return empty as we can't determine low stock without reorder points
+        // Use reorder recommendations logic
+        $reorder = self::getReorderRecommendations(null, $limit);
 
         return [
-            'items' => [],
+            'items' => $reorder['items'],
         ];
     }
 
@@ -189,15 +214,57 @@ class InventoryAnalytics
      */
     public static function getABCAnalysis(): array
     {
-        // Note: Can't do ABC analysis without unit prices in stock_balances
-        // Would need to join with purchase_order_lines or goods_receipt_lines for pricing
-        // For now, return empty classification
+        // Use stock valuation to calculate ABC classification
+        $valuation = self::getStockValuation();
+
+        if (empty($valuation['items'])) {
+            return [
+                'A_items' => 0,
+                'B_items' => 0,
+                'C_items' => 0,
+                'total_items' => 0,
+            ];
+        }
+
+        // Calculate value for each item and sort
+        $itemsWithValue = collect($valuation['items'])->map(function ($item) {
+            return [
+                'item_id' => $item['item_id'],
+                'value' => $item['quantity'] * $item['avg_unit_price'],
+            ];
+        })->sortByDesc('value')->values();
+
+        $totalValue = $itemsWithValue->sum('value');
+        $totalItems = $itemsWithValue->count();
+
+        // ABC Classification:
+        // A: Top items that contribute 80% of value (usually 20% of items)
+        // B: Next items that contribute 15% of value (usually 30% of items)
+        // C: Remaining items that contribute 5% of value (usually 50% of items)
+
+        $aCount = 0;
+        $bCount = 0;
+        $cCount = 0;
+        $cumulativeValue = 0;
+
+        foreach ($itemsWithValue as $item) {
+            $cumulativeValue += $item['value'];
+            $percentage = ($cumulativeValue / $totalValue) * 100;
+
+            if ($percentage <= 80) {
+                $aCount++;
+            } elseif ($percentage <= 95) {
+                $bCount++;
+            } else {
+                $cCount++;
+            }
+        }
 
         return [
-            'A_items' => 0,
-            'B_items' => 0,
-            'C_items' => 0,
-            'total_items' => 0,
+            'A_items' => $aCount,
+            'B_items' => $bCount,
+            'C_items' => $cCount,
+            'total_items' => $totalItems,
         ];
     }
 
