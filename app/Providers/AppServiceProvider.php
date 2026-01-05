@@ -7,10 +7,12 @@ use App\Models\GoodsReceipt;
 use App\Models\PurchaseOrder;
 use App\Models\PurchaseRequest;
 use App\Models\PutAway;
+use App\Models\StockMovement;
 use App\Models\Supplier;
 use App\Models\User;
 use App\Models\Warehouse;
 use App\Models\WarehouseLocation;
+use App\Observers\StockMovementObserver;
 use App\Policies\ApprovalWorkflowPolicy;
 use App\Policies\GoodsReceiptPolicy;
 use App\Policies\PurchaseOrderPolicy;
@@ -39,6 +41,9 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        // Register model observers
+        StockMovement::observe(StockMovementObserver::class);
+
         // Register explicit route model binding for approval workflows
         Route::bind('approvalWorkflow', function ($value) {
             return ApprovalWorkflow::findOrFail($value);

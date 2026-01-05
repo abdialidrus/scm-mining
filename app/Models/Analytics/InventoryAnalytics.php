@@ -207,7 +207,8 @@ class InventoryAnalytics
      */
     public static function getStockValuation(): array
     {
-        // Get stock balances with latest GR prices (FIFO - First In First Out)
+        // Get stock balances with latest prices from PO via GR (FIFO - First In First Out)
+        // Use simpler approach: just get average price without ordering
         $valuation = DB::table('stock_balances')
             ->select(
                 'stock_balances.item_id',
@@ -215,15 +216,14 @@ class InventoryAnalytics
                 'items.name',
                 DB::raw('SUM(stock_balances.qty_on_hand) as total_qty'),
                 DB::raw('COALESCE(
-                    (SELECT AVG(gr.unit_price)
+                    (SELECT AVG(po.unit_price)
                      FROM goods_receipt_lines gr
+                     INNER JOIN purchase_order_lines po ON gr.purchase_order_line_id = po.id
                      WHERE gr.item_id = stock_balances.item_id
-                     ORDER BY gr.created_at DESC
                      LIMIT 10),
                     (SELECT AVG(po.unit_price)
                      FROM purchase_order_lines po
                      WHERE po.item_id = stock_balances.item_id
-                     ORDER BY po.created_at DESC
                      LIMIT 10),
                     0
                 ) as avg_unit_price')
@@ -290,31 +290,66 @@ class InventoryAnalytics
      */
     public static function getStockAgingAnalysis(): array
     {
-        $aging = DB::table('stock_balances')
-            ->select(
-                DB::raw('CASE
-                    WHEN EXTRACT(DAY FROM (NOW() - COALESCE(last_movement.movement_at, stock_balances.created_at))) <= 30 THEN \'0-30 days\'
-                    WHEN EXTRACT(DAY FROM (NOW() - COALESCE(last_movement.movement_at, stock_balances.created_at))) <= 60 THEN \'31-60 days\'
-                    WHEN EXTRACT(DAY FROM (NOW() - COALESCE(last_movement.movement_at, stock_balances.created_at))) <= 90 THEN \'61-90 days\'
-                    ELSE \'90+ days\'
-                END as age_bucket'),
-                DB::raw('COUNT(DISTINCT stock_balances.item_id) as item_count'),
-                DB::raw('SUM(stock_balances.qty_on_hand) as total_qty')
+        // Use WITH clause to pre-calculate the aging date
+        $aging = DB::select("
+            WITH item_ages AS (
+                SELECT
+                    sb.item_id,
+                    sb.qty_on_hand,
+                    COALESCE(lm.movement_at, sb.created_at) as reference_date
+                FROM stock_balances sb
+                LEFT JOIN (
+                    SELECT item_id, MAX(movement_at) as movement_at
+                    FROM stock_movements
+                    GROUP BY item_id
+                ) lm ON sb.item_id = lm.item_id
+                WHERE sb.qty_on_hand > 0
             )
-            ->leftJoin(DB::raw('(SELECT item_id, MAX(movement_at) as movement_at FROM stock_movements GROUP BY item_id) as last_movement'), 'stock_balances.item_id', '=', 'last_movement.item_id')
-            ->where('stock_balances.qty_on_hand', '>', 0)
-            ->groupBy('age_bucket')
-            ->orderByRaw("CASE age_bucket
-                WHEN '0-30 days' THEN 1
-                WHEN '31-60 days' THEN 2
-                WHEN '61-90 days' THEN 3
-                ELSE 4 END")
-            ->get();
+            SELECT
+                CASE
+                    WHEN EXTRACT(DAY FROM (NOW() - reference_date)) <= 30 THEN '0-30 days'
+                    WHEN EXTRACT(DAY FROM (NOW() - reference_date)) <= 60 THEN '31-60 days'
+                    WHEN EXTRACT(DAY FROM (NOW() - reference_date)) <= 90 THEN '61-90 days'
+                    ELSE '90+ days'
+                END as age_bucket,
+                COUNT(DISTINCT item_id) as item_count,
+                SUM(qty_on_hand) as total_qty
+            FROM item_ages
+            GROUP BY
+                CASE
+                    WHEN EXTRACT(DAY FROM (NOW() - reference_date)) <= 30 THEN '0-30 days'
+                    WHEN EXTRACT(DAY FROM (NOW() - reference_date)) <= 60 THEN '31-60 days'
+                    WHEN EXTRACT(DAY FROM (NOW() - reference_date)) <= 90 THEN '61-90 days'
+                    ELSE '90+ days'
+                END
+            ORDER BY
+                CASE
+                    WHEN CASE
+                        WHEN EXTRACT(DAY FROM (NOW() - reference_date)) <= 30 THEN '0-30 days'
+                        WHEN EXTRACT(DAY FROM (NOW() - reference_date)) <= 60 THEN '31-60 days'
+                        WHEN EXTRACT(DAY FROM (NOW() - reference_date)) <= 90 THEN '61-90 days'
+                        ELSE '90+ days'
+                    END = '0-30 days' THEN 1
+                    WHEN CASE
+                        WHEN EXTRACT(DAY FROM (NOW() - reference_date)) <= 30 THEN '0-30 days'
+                        WHEN EXTRACT(DAY FROM (NOW() - reference_date)) <= 60 THEN '31-60 days'
+                        WHEN EXTRACT(DAY FROM (NOW() - reference_date)) <= 90 THEN '61-90 days'
+                        ELSE '90+ days'
+                    END = '31-60 days' THEN 2
+                    WHEN CASE
+                        WHEN EXTRACT(DAY FROM (NOW() - reference_date)) <= 30 THEN '0-30 days'
+                        WHEN EXTRACT(DAY FROM (NOW() - reference_date)) <= 60 THEN '31-60 days'
+                        WHEN EXTRACT(DAY FROM (NOW() - reference_date)) <= 90 THEN '61-90 days'
+                        ELSE '90+ days'
+                    END = '61-90 days' THEN 3
+                    ELSE 4
+                END
+        ");
 
         return [
-            'buckets' => $aging->pluck('age_bucket'),
-            'item_counts' => $aging->pluck('item_count'),
-            'quantities' => $aging->pluck('total_qty')->map(fn($q) => round($q, 2)),
+            'buckets' => collect($aging)->pluck('age_bucket'),
+            'item_counts' => collect($aging)->pluck('item_count'),
+            'quantities' => collect($aging)->pluck('total_qty')->map(fn($q) => round((float)$q, 2)),
         ];
     }
 
@@ -383,25 +418,34 @@ class InventoryAnalytics
     {
         $startDate = Carbon::now()->subMonths($months)->startOfMonth();
 
-        // Calculate COGS from goods receipts
+        // Calculate COGS from goods receipts (get price from PO)
         $cogs = DB::table('goods_receipt_lines')
             ->join('goods_receipts', 'goods_receipt_lines.goods_receipt_id', '=', 'goods_receipts.id')
-            ->where('goods_receipts.completed_at', '>=', $startDate)
-            ->sum(DB::raw('goods_receipt_lines.received_quantity * goods_receipt_lines.unit_price'));
+            ->join('purchase_order_lines', 'goods_receipt_lines.purchase_order_line_id', '=', 'purchase_order_lines.id')
+            ->where('goods_receipts.received_at', '>=', $startDate)
+            ->whereNotNull('goods_receipts.received_at')
+            ->sum(DB::raw('goods_receipt_lines.received_quantity * purchase_order_lines.unit_price'));
 
-        // Calculate average inventory value
-        $avgInventoryValue = DB::table('stock_balances')
-            ->select(DB::raw('
-                AVG(stock_balances.qty_on_hand * COALESCE(
-                    (SELECT AVG(gr.unit_price)
-                     FROM goods_receipt_lines gr
-                     WHERE gr.item_id = stock_balances.item_id
-                     ORDER BY gr.created_at DESC
-                     LIMIT 10),
-                    0
-                )) as avg_value
-            '))
-            ->value('avg_value');
+        // Calculate average inventory value using simpler query
+        $result = DB::select("
+            SELECT AVG(calculated_value) as avg_value
+            FROM (
+                SELECT
+                    sb.item_id,
+                    sb.qty_on_hand * COALESCE(
+                        (SELECT AVG(po.unit_price)
+                         FROM goods_receipt_lines gr
+                         INNER JOIN purchase_order_lines po ON gr.purchase_order_line_id = po.id
+                         WHERE gr.item_id = sb.item_id
+                         LIMIT 10),
+                        0
+                    ) as calculated_value
+                FROM stock_balances sb
+                WHERE sb.qty_on_hand > 0
+            ) as inventory_values
+        ");
+
+        $avgInventoryValue = $result[0]->avg_value ?? 0;
 
         $turnoverRate = $avgInventoryValue > 0 ? $cogs / $avgInventoryValue : 0;
 
@@ -429,8 +473,9 @@ class InventoryAnalytics
                 DB::raw('MAX(stock_movements.movement_at) as last_movement_date'),
                 DB::raw('EXTRACT(DAY FROM (NOW() - COALESCE(MAX(stock_movements.movement_at), stock_balances.created_at))) as days_since_movement'),
                 DB::raw('SUM(stock_balances.qty_on_hand) * COALESCE(
-                    (SELECT AVG(gr.unit_price)
+                    (SELECT AVG(po.unit_price)
                      FROM goods_receipt_lines gr
+                     INNER JOIN purchase_order_lines po ON gr.purchase_order_line_id = po.id
                      WHERE gr.item_id = stock_balances.item_id
                      ORDER BY gr.created_at DESC
                      LIMIT 10),
