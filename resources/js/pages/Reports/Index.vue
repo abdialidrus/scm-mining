@@ -130,12 +130,18 @@ const procurementTrendSeries = computed(() => {
     return [
         {
             name: 'Total Amount',
-            data: procurementData.value.monthly_trend.amounts || [],
+            data:
+                procurementData.value.monthly_trend.amounts?.map((v: any) =>
+                    Number(v),
+                ) || [],
             color: '#3b82f6',
         },
         {
             name: 'Count',
-            data: procurementData.value.monthly_trend.counts || [],
+            data:
+                procurementData.value.monthly_trend.counts?.map((v: any) =>
+                    Number(v),
+                ) || [],
             color: '#10b981',
         },
     ];
@@ -146,7 +152,10 @@ const supplierChartSeries = computed(() => {
     return [
         {
             name: 'Amount',
-            data: procurementData.value.top_suppliers.amounts || [],
+            data:
+                procurementData.value.top_suppliers.amounts?.map((v: any) =>
+                    Number(v),
+                ) || [],
             color: '#f59e0b',
         },
     ];
@@ -157,12 +166,18 @@ const inventoryMovementSeries = computed(() => {
     return [
         {
             name: 'Inbound',
-            data: inventoryData.value.movement_trend.inbound || [],
+            data:
+                inventoryData.value.movement_trend.inbound?.map((v: any) =>
+                    Number(v),
+                ) || [],
             color: '#10b981',
         },
         {
             name: 'Outbound',
-            data: inventoryData.value.movement_trend.outbound || [],
+            data:
+                inventoryData.value.movement_trend.outbound?.map((v: any) =>
+                    Number(v),
+                ) || [],
             color: '#ef4444',
         },
     ];
@@ -173,7 +188,10 @@ const warehouseChartSeries = computed(() => {
     return [
         {
             name: 'Value',
-            data: inventoryData.value.warehouse_distribution.values || [],
+            data:
+                inventoryData.value.warehouse_distribution.values?.map(
+                    (v: any) => Number(v),
+                ) || [],
             color: '#8b5cf6',
         },
     ];
@@ -184,7 +202,10 @@ const spendingTrendSeries = computed(() => {
     return [
         {
             name: 'Spending',
-            data: financialData.value.spending_trend.amounts || [],
+            data:
+                financialData.value.spending_trend.amounts?.map((v: any) =>
+                    Number(v),
+                ) || [],
             color: '#ef4444',
         },
     ];
@@ -195,15 +216,29 @@ const budgetChartSeries = computed(() => {
     return [
         {
             name: 'Budget',
-            data: financialData.value.budget_vs_actual.budgets || [],
+            data:
+                financialData.value.budget_vs_actual.budgets?.map((v: any) =>
+                    Number(v),
+                ) || [],
             color: '#3b82f6',
         },
         {
             name: 'Actual',
-            data: financialData.value.budget_vs_actual.actuals || [],
+            data:
+                financialData.value.budget_vs_actual.actuals?.map((v: any) =>
+                    Number(v),
+                ) || [],
             color: '#10b981',
         },
     ];
+});
+
+const paymentStatusData = computed(() => {
+    if (!financialData.value?.payment_status?.statuses) return [];
+    return financialData.value.payment_status.statuses.map((status: any) => ({
+        name: status.name,
+        value: parseFloat(status.amount),
+    }));
 });
 </script>
 
@@ -285,10 +320,13 @@ const budgetChartSeries = computed(() => {
                                 >
                                     {{
                                         formatNumber(
-                                            procurementData.monthly_trend?.counts?.reduce(
-                                                (a: number, b: number) => a + b,
-                                                0,
-                                            ) || 0,
+                                            procurementData.monthly_trend?.counts
+                                                ?.map((v: any) => Number(v))
+                                                .reduce(
+                                                    (a: number, b: number) =>
+                                                        a + b,
+                                                    0,
+                                                ) || 0,
                                         )
                                     }}
                                 </div>
@@ -311,10 +349,13 @@ const budgetChartSeries = computed(() => {
                                 >
                                     {{
                                         formatCurrency(
-                                            procurementData.monthly_trend?.amounts?.reduce(
-                                                (a: number, b: number) => a + b,
-                                                0,
-                                            ) || 0,
+                                            procurementData.monthly_trend?.amounts
+                                                ?.map((v: any) => Number(v))
+                                                .reduce(
+                                                    (a: number, b: number) =>
+                                                        a + b,
+                                                    0,
+                                                ) || 0,
                                         )
                                     }}
                                 </div>
@@ -442,9 +483,9 @@ const budgetChartSeries = computed(() => {
                                         {
                                             name: 'Spending',
                                             data:
-                                                procurementData
-                                                    .department_spending
-                                                    .amounts || [],
+                                                procurementData.department_spending.amounts?.map(
+                                                    (v: any) => Number(v),
+                                                ) || [],
                                             color: '#6366f1',
                                         },
                                     ]"
@@ -669,8 +710,9 @@ const budgetChartSeries = computed(() => {
                                         {
                                             name: 'Value',
                                             data:
-                                                inventoryData.top_items
-                                                    .values || [],
+                                                inventoryData.top_items.values?.map(
+                                                    (v: any) => Number(v),
+                                                ) || [],
                                             color: '#ec4899',
                                         },
                                     ]"
@@ -704,10 +746,13 @@ const budgetChartSeries = computed(() => {
                                 >
                                     {{
                                         formatCurrency(
-                                            financialData.spending_trend?.amounts?.reduce(
-                                                (a: number, b: number) => a + b,
-                                                0,
-                                            ) || 0,
+                                            financialData.spending_trend?.amounts
+                                                ?.map((v: any) => Number(v))
+                                                .reduce(
+                                                    (a: number, b: number) =>
+                                                        a + b,
+                                                    0,
+                                                ) || 0,
                                         )
                                     }}
                                 </div>
@@ -826,10 +871,8 @@ const budgetChartSeries = computed(() => {
                             </CardHeader>
                             <CardContent>
                                 <PieChart
-                                    v-if="financialData?.payment_status"
-                                    :data="
-                                        financialData.payment_status.statuses
-                                    "
+                                    v-if="paymentStatusData.length > 0"
+                                    :data="paymentStatusData"
                                     :loading="loading"
                                     height="350px"
                                     donut
@@ -859,8 +902,9 @@ const budgetChartSeries = computed(() => {
                                         {
                                             name: 'Spending',
                                             data:
-                                                financialData.spend_by_category
-                                                    .amounts || [],
+                                                financialData.spend_by_category.amounts?.map(
+                                                    (v: any) => Number(v),
+                                                ) || [],
                                             color: '#f97316',
                                         },
                                     ]"

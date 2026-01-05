@@ -98,7 +98,7 @@ class FinancialAnalytics
             ->select(
                 'departments.id',
                 'departments.name',
-                'departments.budget',
+                DB::raw('0 as budget'),
                 DB::raw('COALESCE(SUM(purchase_order_lines.quantity * purchase_order_lines.unit_price), 0) as total_spent')
             )
             ->leftJoin('purchase_requests', 'departments.id', '=', 'purchase_requests.department_id')
@@ -107,7 +107,7 @@ class FinancialAnalytics
             ->leftJoin('purchase_order_lines', 'purchase_orders.id', '=', 'purchase_order_lines.purchase_order_id')
             ->whereYear('purchase_orders.created_at', Carbon::now()->year)
             ->whereIn('purchase_orders.status', ['APPROVED', 'SENT', 'PARTIALLY_RECEIVED', 'RECEIVED', 'CLOSED'])
-            ->groupBy('departments.id', 'departments.name', 'departments.budget');
+            ->groupBy('departments.id', 'departments.name');
 
         if ($departmentId) {
             $query->where('departments.id', $departmentId);
@@ -186,22 +186,22 @@ class FinancialAnalytics
     {
         $paymentStatus = DB::table('purchase_orders')
             ->select(
-                'purchase_orders.payment_status',
+                'purchase_orders.status',
                 DB::raw('COUNT(DISTINCT purchase_orders.id) as count'),
                 DB::raw('COALESCE(SUM(purchase_order_lines.quantity * purchase_order_lines.unit_price), 0) as total_amount')
             )
             ->leftJoin('purchase_order_lines', 'purchase_orders.id', '=', 'purchase_order_lines.purchase_order_id')
-            ->whereIn('purchase_orders.status', ['APPROVED', 'PARTIALLY_RECEIVED', 'RECEIVED', 'COMPLETED'])
-            ->groupBy('purchase_orders.payment_status')
+            ->whereIn('purchase_orders.status', ['APPROVED', 'SENT', 'PARTIALLY_RECEIVED', 'RECEIVED', 'CLOSED'])
+            ->groupBy('purchase_orders.status')
             ->get();
 
         $totalOutstanding = $paymentStatus
-            ->whereIn('payment_status', ['PENDING', 'PARTIALLY_PAID'])
+            ->whereIn('status', ['APPROVED', 'SENT'])
             ->sum('total_amount');
 
         return [
             'statuses' => $paymentStatus->map(fn($s) => [
-                'name' => ucfirst(str_replace('_', ' ', $s->payment_status ?? 'Unknown')),
+                'name' => ucfirst(str_replace('_', ' ', $s->status ?? 'Unknown')),
                 'count' => $s->count,
                 'amount' => $s->total_amount,
             ]),
@@ -217,7 +217,7 @@ class FinancialAnalytics
         // Find items with price variations across suppliers
         $priceVariations = DB::table('purchase_order_lines')
             ->select(
-                'items.code',
+                'items.sku as code',
                 'items.name',
                 DB::raw('MIN(purchase_order_lines.unit_price) as min_price'),
                 DB::raw('MAX(purchase_order_lines.unit_price) as max_price'),
@@ -227,7 +227,7 @@ class FinancialAnalytics
             ->join('purchase_orders', 'purchase_order_lines.purchase_order_id', '=', 'purchase_orders.id')
             ->join('items', 'purchase_order_lines.item_id', '=', 'items.id')
             ->where('purchase_orders.created_at', '>=', Carbon::now()->subMonths(6))
-            ->groupBy('items.id', 'items.code', 'items.name')
+            ->groupBy('items.id', 'items.sku', 'items.name')
             ->havingRaw('COUNT(DISTINCT purchase_orders.supplier_id) > 1')
             ->havingRaw('MAX(purchase_order_lines.unit_price) > MIN(purchase_order_lines.unit_price) * 1.1')
             ->orderByRaw('(MAX(purchase_order_lines.unit_price) - MIN(purchase_order_lines.unit_price)) DESC')
@@ -255,20 +255,21 @@ class FinancialAnalytics
         $startDate = Carbon::now()->subMonths($months)->startOfMonth();
 
         $spending = PurchaseOrder::select(
-            'items.category',
+            DB::raw('COALESCE(item_categories.name, \'Uncategorized\') as category'),
             DB::raw('SUM(purchase_order_lines.quantity * purchase_order_lines.unit_price) as total_amount'),
             DB::raw('COUNT(DISTINCT purchase_orders.id) as order_count')
         )
             ->join('purchase_order_lines', 'purchase_orders.id', '=', 'purchase_order_lines.purchase_order_id')
             ->join('items', 'purchase_order_lines.item_id', '=', 'items.id')
+            ->leftJoin('item_categories', 'items.item_category_id', '=', 'item_categories.id')
             ->where('purchase_orders.created_at', '>=', $startDate)
-            ->groupBy('items.category')
+            ->groupBy('item_categories.name')
             ->orderBy('total_amount', 'DESC')
             ->limit(10)
             ->get();
 
         return [
-            'categories' => $spending->pluck('category')->map(fn($c) => ucfirst($c)),
+            'categories' => $spending->pluck('category'),
             'amounts' => $spending->pluck('total_amount'),
             'counts' => $spending->pluck('order_count'),
         ];

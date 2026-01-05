@@ -83,10 +83,13 @@ const option = computed(() => ({
 watch(
     () => props.loading,
     (loading) => {
-        if (chartRef.value) {
+        if (
+            chartRef.value &&
+            typeof chartRef.value.showLoading === 'function'
+        ) {
             if (loading) {
                 chartRef.value.showLoading();
-            } else {
+            } else if (typeof chartRef.value.hideLoading === 'function') {
                 chartRef.value.hideLoading();
             }
         }
@@ -94,7 +97,11 @@ watch(
 );
 
 onMounted(() => {
-    if (props.loading && chartRef.value) {
+    if (
+        props.loading &&
+        chartRef.value &&
+        typeof chartRef.value.showLoading === 'function'
+    ) {
         chartRef.value.showLoading();
     }
 });
