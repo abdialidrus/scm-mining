@@ -4,6 +4,7 @@ use App\Http\Controllers\Accounting\InvoiceMatchingController;
 use App\Http\Controllers\Accounting\InvoicePaymentController;
 use App\Http\Controllers\Accounting\SupplierInvoiceController;
 use Illuminate\Support\Facades\Route;
+use Inertia\Inertia;
 
 /*
 |--------------------------------------------------------------------------
@@ -15,12 +16,14 @@ Route::middleware(['auth:sanctum', 'verified'])->prefix('accounting')->name('acc
 
     // Supplier Invoices
     Route::prefix('invoices')->name('invoices.')->group(function () {
-        // Main CRUD
-        Route::get('/', [SupplierInvoiceController::class, 'index'])->name('index');
-        Route::get('/create', [SupplierInvoiceController::class, 'create'])->name('create');
+        // Main CRUD - Inertia pages (data loaded via API)
+        Route::get('/', fn() => Inertia::render('Accounting/Invoices/Index'))->name('index');
+        Route::get('/create', fn() => Inertia::render('Accounting/Invoices/Create'))->name('create');
+        Route::get('/{supplierInvoice}', fn() => Inertia::render('Accounting/Invoices/Show'))->name('show');
+        Route::get('/{supplierInvoice}/edit', fn() => Inertia::render('Accounting/Invoices/Edit'))->name('edit');
+
+        // Actions - Still use controller for form processing
         Route::post('/', [SupplierInvoiceController::class, 'store'])->name('store');
-        Route::get('/{supplierInvoice}', [SupplierInvoiceController::class, 'show'])->name('show');
-        Route::get('/{supplierInvoice}/edit', [SupplierInvoiceController::class, 'edit'])->name('edit');
         Route::put('/{supplierInvoice}', [SupplierInvoiceController::class, 'update'])->name('update');
         Route::delete('/{supplierInvoice}', [SupplierInvoiceController::class, 'destroy'])->name('destroy');
 

@@ -61,8 +61,10 @@ export async function listInvoices(params?: {
     return apiFetch(url) as Promise<{ data: InvoiceDto[]; meta: any }>;
 }
 
-export async function getInvoice(id: number) {
-    return apiFetch(`/api/accounting/invoices/${id}`);
+export async function getInvoice(id: number): Promise<{ data: InvoiceDto }> {
+    return apiFetch(`/api/accounting/invoices/${id}`) as Promise<{
+        data: InvoiceDto;
+    }>;
 }
 
 export async function deleteInvoice(id: number) {
