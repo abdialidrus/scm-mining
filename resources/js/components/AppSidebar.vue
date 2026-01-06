@@ -26,6 +26,7 @@ import {
     PackageCheck,
     PackageMinus,
     PackageOpen,
+    Receipt,
     Ruler,
     ShoppingCart,
     TrendingUp,
@@ -69,6 +70,9 @@ const canShowGoodsReceipts =
 const canShowPutAways = isSuperAdmin || isWarehouse || isGm || isDirector;
 
 const canShowPickingOrders = isSuperAdmin || isWarehouse || isGm || isDirector;
+
+const canShowInvoices =
+    isSuperAdmin || isFinance || isProcurement || isGm || isDirector;
 
 const canShowInventoryReports =
     isSuperAdmin || isProcurement || isGm || isDirector;
@@ -174,6 +178,14 @@ function getProcurementNavItems(): NavItem[] {
             title: 'Goods Receipts',
             href: '/goods-receipts',
             icon: PackageCheck,
+        });
+    }
+
+    if (canShowInvoices) {
+        items.push({
+            title: 'Invoices',
+            href: '/accounting/invoices',
+            icon: Receipt,
         });
     }
 

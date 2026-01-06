@@ -1,5 +1,14 @@
 import { AppPageProps } from '@/types/index';
 
+// Declare global route function from Ziggy
+declare global {
+    function route(
+        name?: string,
+        params?: Record<string, any> | any,
+        absolute?: boolean,
+    ): string;
+}
+
 // Extend ImportMeta interface for Vite...
 declare module 'vite/client' {
     interface ImportMetaEnv {

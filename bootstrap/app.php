@@ -6,6 +6,7 @@ use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Http\Middleware\AddLinkHeadersForPreloadedAssets;
+use Illuminate\Support\Facades\Route;
 use Laravel\Sanctum\Http\Middleware\EnsureFrontendRequestsAreStateful;
 
 return Application::configure(basePath: dirname(__DIR__))
@@ -14,6 +15,22 @@ return Application::configure(basePath: dirname(__DIR__))
         api: __DIR__ . '/../routes/api.php',
         commands: __DIR__ . '/../routes/console.php',
         health: '/up',
+        then: function () {
+            Route::middleware('web')
+                ->group(base_path('routes/master_data.php'));
+            Route::middleware('web')
+                ->group(base_path('routes/purchase_requests.php'));
+            Route::middleware('web')
+                ->group(base_path('routes/purchase_orders.php'));
+            Route::middleware('web')
+                ->group(base_path('routes/goods_receipts.php'));
+            Route::middleware('web')
+                ->group(base_path('routes/put_aways.php'));
+            Route::middleware('web')
+                ->group(base_path('routes/settings.php'));
+            Route::middleware('web')
+                ->group(base_path('routes/accounting.php'));
+        },
     )
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->encryptCookies(except: ['appearance', 'sidebar_state']);

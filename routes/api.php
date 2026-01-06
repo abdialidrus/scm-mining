@@ -15,6 +15,7 @@ use App\Http\Controllers\Api\PurchaseRequestController;
 use App\Http\Controllers\Api\PutAwayController;
 use App\Http\Controllers\Api\RoleController;
 use App\Http\Controllers\Api\SupplierController;
+use App\Http\Controllers\Api\SupplierInvoiceController;
 use App\Http\Controllers\Api\UomController;
 use App\Http\Controllers\Api\UserController;
 use App\Http\Controllers\Api\UserDeviceController;
@@ -143,6 +144,16 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::prefix('stock/serial-numbers')->group(function () {
         Route::get('/', [ItemSerialNumberController::class, 'available']);
         Route::get('/{serialNumber}', [ItemSerialNumberController::class, 'show']);
+    });
+
+    // Accounting - Supplier Invoices
+    Route::prefix('accounting/invoices')->group(function () {
+        Route::get('/', [SupplierInvoiceController::class, 'index']);
+        Route::post('/', [SupplierInvoiceController::class, 'store']);
+        Route::get('/create-data', [SupplierInvoiceController::class, 'getCreateData']);
+        Route::get('/purchase-orders/{purchaseOrder}', [SupplierInvoiceController::class, 'getPurchaseOrderDetails']);
+        Route::get('/{supplierInvoice}', [SupplierInvoiceController::class, 'show']);
+        Route::delete('/{supplierInvoice}', [SupplierInvoiceController::class, 'destroy']);
     });
 
     Route::get('/roles', [RoleController::class, 'index']);

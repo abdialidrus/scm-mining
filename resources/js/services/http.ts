@@ -8,17 +8,50 @@ function getCookie(name: string): string | undefined {
     return match ? decodeURIComponent(match[2]) : undefined;
 }
 
+function getCsrfToken(): string | undefined {
+    // Try XSRF cookie first (Sanctum standard)
+    const xsrfToken = getCookie('XSRF-TOKEN');
+    if (xsrfToken) return xsrfToken;
+
+    // Fallback to meta tag
+    const metaTag = document.querySelector<HTMLMetaElement>(
+        'meta[name="csrf-token"]',
+    );
+    return metaTag?.content;
+}
+
+let csrfCookieInitialized = false;
+
+async function ensureCsrfCookie(): Promise<void> {
+    if (csrfCookieInitialized || getCookie('XSRF-TOKEN')) {
+        return;
+    }
+
+    // Request CSRF cookie from Sanctum
+    await fetch('/sanctum/csrf-cookie', {
+        credentials: 'same-origin',
+    });
+
+    csrfCookieInitialized = true;
+}
+
 export async function apiFetch<T>(
     input: RequestInfo | URL,
     init?: RequestInit,
 ): Promise<T> {
-    const xsrfToken = getCookie('XSRF-TOKEN');
+    // Ensure CSRF cookie is set for state-changing methods
+    const method = init?.method?.toUpperCase() || 'GET';
+    if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(method)) {
+        await ensureCsrfCookie();
+    }
+
+    const csrfToken = getCsrfToken();
 
     const res = await fetch(input, {
         headers: {
             Accept: 'application/json',
             'Content-Type': 'application/json',
-            ...(xsrfToken ? { 'X-XSRF-TOKEN': xsrfToken } : {}),
+            ...(csrfToken ? { 'X-XSRF-TOKEN': csrfToken } : {}),
             ...(init?.headers ?? {}),
         },
         credentials: 'same-origin',

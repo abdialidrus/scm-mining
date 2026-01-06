@@ -58,6 +58,7 @@ class AppServiceProvider extends ServiceProvider
         Gate::policy(WarehouseLocation::class, WarehouseLocationPolicy::class);
         Gate::policy(PutAway::class, PutAwayPolicy::class);
         Gate::policy(ApprovalWorkflow::class, ApprovalWorkflowPolicy::class);
+        Gate::policy(\App\Models\Accounting\SupplierInvoice::class, \App\Policies\Accounting\SupplierInvoicePolicy::class);
     }
 
     protected $policies = [];

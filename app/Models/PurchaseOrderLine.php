@@ -46,4 +46,9 @@ class PurchaseOrderLine extends Model
     {
         return $this->belongsTo(Uom::class);
     }
+
+    public function goodsReceiptLines()
+    {
+        return $this->hasMany(GoodsReceiptLine::class, 'purchase_order_line_id');
+    }
 }
