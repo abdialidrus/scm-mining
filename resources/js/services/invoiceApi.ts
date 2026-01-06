@@ -5,22 +5,22 @@ export type InvoiceDto = {
     internal_number: string;
     invoice_number: string;
     invoice_date: string;
-    due_date: string;
-    status: string;
-    matching_status: string;
-    payment_status: string;
-    supplier_id: number;
+    due_date: string | null;
+    status: { value: string; label: string; color: string } | null;
+    matching_status: { value: string; label: string; color: string } | null;
+    payment_status: { value: string; label: string; color: string } | null;
+    supplier_id?: number;
     supplier?: {
         id: number;
         code: string;
         name: string;
     };
-    purchase_order_id: number;
+    purchase_order_id?: number;
     purchase_order?: {
         id: number;
         po_number: string;
     };
-    subtotal_amount: number;
+    subtotal: number;
     tax_amount: number;
     total_amount: number;
     paid_amount: number;
@@ -45,7 +45,7 @@ export async function listInvoices(params?: {
     supplier_id?: number;
     page?: number;
     per_page?: number;
-}) {
+}): Promise<{ data: InvoiceDto[]; meta: any }> {
     const qs = new URLSearchParams();
     if (params?.search) qs.set('search', params.search);
     if (params?.status) qs.set('status', params.status);
@@ -58,7 +58,7 @@ export async function listInvoices(params?: {
     if (params?.per_page) qs.set('per_page', params.per_page.toString());
 
     const url = `/api/accounting/invoices?${qs.toString()}`;
-    return apiFetch(url);
+    return apiFetch(url) as Promise<{ data: InvoiceDto[]; meta: any }>;
 }
 
 export async function getInvoice(id: number) {

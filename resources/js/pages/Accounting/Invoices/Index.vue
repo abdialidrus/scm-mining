@@ -67,10 +67,10 @@ async function load() {
             per_page: perPage.value,
         });
 
-        const paginated = (res as any).data;
-        invoices.value = (paginated?.data ?? []) as InvoiceDto[];
+        // API response structure: { data: InvoiceDto[], meta: {...} }
+        invoices.value = (res.data ?? []) as InvoiceDto[];
 
-        const meta = paginated?.meta;
+        const meta = res.meta;
         const currentPage = Number(meta?.current_page ?? page.value);
         const lastPage = Number(meta?.last_page ?? currentPage);
         page.value = currentPage;
@@ -258,9 +258,9 @@ onMounted(load);
             </div>
 
             <!-- Invoices Table -->
-            <div v-else class="rounded-md border">
+            <div v-else class="mt-6 overflow-hidden rounded-lg border">
                 <Table>
-                    <TableHeader>
+                    <TableHeader class="bg-muted/40">
                         <TableRow>
                             <TableHead>Internal No.</TableHead>
                             <TableHead>Invoice No.</TableHead>
@@ -310,15 +310,23 @@ onMounted(load);
                                 {{ invoice.due_date }}
                             </TableCell>
                             <TableCell>
-                                <StatusBadge :status="invoice.status" />
-                            </TableCell>
-                            <TableCell>
                                 <StatusBadge
-                                    :status="invoice.matching_status"
+                                    :status="invoice.status?.value ?? null"
                                 />
                             </TableCell>
                             <TableCell>
-                                <StatusBadge :status="invoice.payment_status" />
+                                <StatusBadge
+                                    :status="
+                                        invoice.matching_status?.value ?? null
+                                    "
+                                />
+                            </TableCell>
+                            <TableCell>
+                                <StatusBadge
+                                    :status="
+                                        invoice.payment_status?.value ?? null
+                                    "
+                                />
                             </TableCell>
                             <TableCell class="text-right font-medium">
                                 {{ formatCurrency(invoice.total_amount) }}
@@ -356,7 +364,7 @@ onMounted(load);
                                         </Link>
                                     </Button>
                                     <Button
-                                        v-if="invoice.status === 'DRAFT'"
+                                        v-if="invoice.status?.value === 'DRAFT'"
                                         size="sm"
                                         variant="ghost"
                                         @click="deleteInvoice(invoice)"
@@ -369,7 +377,7 @@ onMounted(load);
                         <TableRow v-if="invoices.length === 0">
                             <TableCell
                                 colspan="11"
-                                class="py-12 text-center text-muted-foreground"
+                                class="py-6 text-center text-muted-foreground"
                             >
                                 No invoices found
                             </TableCell>
@@ -379,53 +387,98 @@ onMounted(load);
             </div>
 
             <!-- Pagination -->
-            <Pagination
+            <div
                 v-if="!loading && invoices.length > 0"
-                v-slot="{ page: _page }"
-                :total="totalPages * perPage"
-                :sibling-count="1"
-                :default-page="page"
-                :items-per-page="perPage"
-                show-edges
+                class="flex items-center justify-between"
             >
-                <PaginationContent class="flex items-center justify-end gap-2">
-                    <Button
-                        variant="outline"
-                        size="icon"
-                        :disabled="!hasPrev"
-                        @click="goToPage(1)"
+                <div
+                    class="hidden flex-1 text-sm text-muted-foreground lg:flex"
+                >
+                    <!-- spacer / optional status text -->
+                </div>
+
+                <div class="flex w-full items-center gap-8 lg:w-fit">
+                    <div class="hidden items-center gap-2 lg:flex">
+                        <label for="rows-per-page" class="text-sm font-medium">
+                            Rows per page
+                        </label>
+                        <select
+                            id="rows-per-page"
+                            v-model.number="perPage"
+                            class="h-8 w-20 rounded-md border bg-background px-2 text-sm"
+                            @change="onChangePerPage"
+                        >
+                            <option :value="10">10</option>
+                            <option :value="20">20</option>
+                            <option :value="50">50</option>
+                            <option :value="100">100</option>
+                        </select>
+                    </div>
+
+                    <div
+                        class="flex w-fit items-center justify-center text-sm font-medium"
                     >
-                        <ChevronsLeft class="h-4 w-4" />
-                    </Button>
-                    <Button
-                        variant="outline"
-                        size="icon"
-                        :disabled="!hasPrev"
-                        @click="prevPage"
-                    >
-                        <ChevronLeft class="h-4 w-4" />
-                    </Button>
-                    <span class="text-sm text-muted-foreground">
                         Page {{ page }} of {{ totalPages }}
-                    </span>
-                    <Button
-                        variant="outline"
-                        size="icon"
-                        :disabled="!hasNext"
-                        @click="nextPage"
-                    >
-                        <ChevronRight class="h-4 w-4" />
-                    </Button>
-                    <Button
-                        variant="outline"
-                        size="icon"
-                        :disabled="!hasNext"
-                        @click="goToPage(totalPages)"
-                    >
-                        <ChevronsRight class="h-4 w-4" />
-                    </Button>
-                </PaginationContent>
-            </Pagination>
+                    </div>
+
+                    <div class="ml-auto flex items-center gap-2 lg:ml-0">
+                        <Pagination
+                            :page="page"
+                            :items-per-page="perPage"
+                            :total="totalPages * perPage"
+                            :sibling-count="1"
+                            :show-edges="true"
+                            @update:page="goToPage"
+                        >
+                            <PaginationContent class="justify-end">
+                                <Button
+                                    variant="outline"
+                                    class="hidden h-8 w-8 p-0 lg:flex"
+                                    :disabled="page === 1"
+                                    @click="goToPage(1)"
+                                >
+                                    <span class="sr-only"
+                                        >Go to first page</span
+                                    >
+                                    <ChevronsLeft />
+                                </Button>
+                                <Button
+                                    variant="outline"
+                                    class="size-8"
+                                    size="icon"
+                                    :disabled="page === 1"
+                                    @click="prevPage"
+                                >
+                                    <span class="sr-only"
+                                        >Go to previous page</span
+                                    >
+                                    <ChevronLeft />
+                                </Button>
+                                <Button
+                                    variant="outline"
+                                    class="size-8"
+                                    size="icon"
+                                    :disabled="page === totalPages"
+                                    @click="nextPage"
+                                >
+                                    <span class="sr-only">Go to next page</span>
+                                    <ChevronRight />
+                                </Button>
+                                <Button
+                                    variant="outline"
+                                    class="hidden size-8 lg:flex"
+                                    size="icon"
+                                    :disabled="page === totalPages"
+                                    @click="goToPage(totalPages)"
+                                >
+                                    <span class="sr-only">Go to last page</span>
+                                    <ChevronsRight />
+                                </Button>
+                            </PaginationContent>
+                        </Pagination>
+                    </div>
+                </div>
+            </div>
         </div>
     </AppLayout>
 </template>
