@@ -14,6 +14,8 @@ class Department extends Model
         'name',
         'parent_id',
         'head_user_id',
+        'created_by_user_id',
+        'updated_by_user_id',
     ];
 
     public function parent()
@@ -34,5 +36,15 @@ class Department extends Model
     public function users()
     {
         return $this->hasMany(User::class);
+    }
+
+    public function createdBy()
+    {
+        return $this->belongsTo(User::class, 'created_by_user_id');
+    }
+
+    public function updatedBy()
+    {
+        return $this->belongsTo(User::class, 'updated_by_user_id');
     }
 }
