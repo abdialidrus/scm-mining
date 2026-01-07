@@ -26,8 +26,8 @@ class SupplierController extends Controller
 
         if ($search !== '') {
             $query->where(function ($q) use ($search) {
-                $q->where('code', 'ilike', '%' . $search . '%')
-                    ->orWhere('name', 'ilike', '%' . $search . '%');
+                $q->where('code', 'LIKE', '%' . $search . '%')
+                    ->orWhere('name', 'LIKE', '%' . $search . '%');
             });
         }
 
