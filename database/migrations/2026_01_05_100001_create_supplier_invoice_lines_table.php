@@ -70,8 +70,10 @@ return new class extends Migration
             $table->unique(['supplier_invoice_id', 'line_number']);
         });
 
-        // Add check constraints using raw SQL
-        DB::statement('ALTER TABLE supplier_invoice_lines ADD CONSTRAINT chk_line_amounts CHECK (invoiced_qty > 0 AND unit_price >= 0 AND line_total >= 0)');
+        // Add check constraints using raw SQL (only for non-SQLite)
+        if (DB::connection()->getDriverName() !== 'sqlite') {
+            DB::statement('ALTER TABLE supplier_invoice_lines ADD CONSTRAINT chk_line_amounts CHECK (invoiced_qty > 0 AND unit_price >= 0 AND line_total >= 0)');
+        }
     }
 
     /**

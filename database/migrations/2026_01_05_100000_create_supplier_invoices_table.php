@@ -87,8 +87,10 @@ return new class extends Migration
             $table->index('invoice_date');
         });
 
-        // Add check constraints using raw SQL
-        DB::statement('ALTER TABLE supplier_invoices ADD CONSTRAINT chk_invoice_amounts CHECK (subtotal >= 0 AND total_amount >= 0 AND paid_amount >= 0 AND paid_amount <= total_amount)');
+        // Add check constraints using raw SQL (only for non-SQLite)
+        if (DB::connection()->getDriverName() !== 'sqlite') {
+            DB::statement('ALTER TABLE supplier_invoices ADD CONSTRAINT chk_invoice_amounts CHECK (subtotal >= 0 AND total_amount >= 0 AND paid_amount >= 0 AND paid_amount <= total_amount)');
+        }
 
         // Unique constraint: One invoice number per supplier (unless cancelled)
         Schema::table('supplier_invoices', function (Blueprint $table) {

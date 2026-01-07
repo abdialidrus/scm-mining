@@ -47,8 +47,10 @@ return new class extends Migration
             $table->index('payment_number');
         });
 
-        // Add check constraint using raw SQL
-        DB::statement('ALTER TABLE invoice_payments ADD CONSTRAINT chk_payment_amount CHECK (payment_amount > 0)');
+        // Add check constraint using raw SQL (only for non-SQLite)
+        if (DB::connection()->getDriverName() !== 'sqlite') {
+            DB::statement('ALTER TABLE invoice_payments ADD CONSTRAINT chk_payment_amount CHECK (payment_amount > 0)');
+        }
     }
 
     /**
