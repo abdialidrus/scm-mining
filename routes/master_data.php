@@ -164,4 +164,17 @@ Route::middleware(['auth', 'verified'])->group(function () {
             'locationId' => $warehouse_location->id,
         ]);
     })->name('master-data.warehouse-locations.show');
+
+    // Item Inventory Settings
+    Route::get('/master-data/item-inventory-settings', [\App\Http\Controllers\ItemInventorySettingController::class, 'index'])
+        ->name('item-inventory-settings.index');
+
+    Route::get('/master-data/item-inventory-settings/create', [\App\Http\Controllers\ItemInventorySettingController::class, 'create'])
+        ->name('item-inventory-settings.create');
+
+    Route::get('/master-data/item-inventory-settings/{item_inventory_setting}/edit', [\App\Http\Controllers\ItemInventorySettingController::class, 'edit'])
+        ->name('item-inventory-settings.edit');
+
+    Route::get('/master-data/item-inventory-settings/{item_inventory_setting}', [\App\Http\Controllers\ItemInventorySettingController::class, 'show'])
+        ->name('item-inventory-settings.show');
 });

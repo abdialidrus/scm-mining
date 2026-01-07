@@ -28,6 +28,7 @@ import {
     PackageOpen,
     Receipt,
     Ruler,
+    Settings,
     ShoppingCart,
     TrendingUp,
     Users,
@@ -268,6 +269,15 @@ function getMasterDataNavItems(): NavItem[] {
                 icon: Ruler,
             },
         );
+    }
+
+    // Inventory Settings - available for super_admin, inventory-manager, warehouse-manager
+    if (isSuperAdmin || isWarehouse) {
+        items.push({
+            title: 'Inventory Settings',
+            href: '/master-data/item-inventory-settings',
+            icon: Settings,
+        });
     }
 
     if (canShowSuppliers) {

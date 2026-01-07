@@ -255,4 +255,15 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/types', [NotificationPreferenceController::class, 'types']);
         Route::post('/reset', [NotificationPreferenceController::class, 'reset']);
     });
+
+    // Item Inventory Settings
+    Route::prefix('item-inventory-settings')->group(function () {
+        Route::get('/', [\App\Http\Controllers\ItemInventorySettingController::class, 'index']);
+        Route::post('/', [\App\Http\Controllers\ItemInventorySettingController::class, 'store']);
+        Route::get('/item/{itemId}', [\App\Http\Controllers\ItemInventorySettingController::class, 'byItem']);
+        Route::post('/bulk-update', [\App\Http\Controllers\ItemInventorySettingController::class, 'bulkUpdate']);
+        Route::get('/{item_inventory_setting}', [\App\Http\Controllers\ItemInventorySettingController::class, 'show']);
+        Route::put('/{item_inventory_setting}', [\App\Http\Controllers\ItemInventorySettingController::class, 'update']);
+        Route::delete('/{item_inventory_setting}', [\App\Http\Controllers\ItemInventorySettingController::class, 'destroy']);
+    });
 });
