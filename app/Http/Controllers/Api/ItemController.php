@@ -42,8 +42,8 @@ class ItemController extends Controller
 
         if ($search !== '') {
             $query->where(function ($q) use ($search) {
-                $q->where('items.sku', 'ilike', '%' . $search . '%')
-                    ->orWhere('items.name', 'ilike', '%' . $search . '%');
+                $q->where('items.sku', 'LIKE', '%' . $search . '%')
+                    ->orWhere('items.name', 'LIKE', '%' . $search . '%');
             });
         }
 
