@@ -71,8 +71,14 @@ class ApprovalWorkflowController extends Controller
         ]);
 
         // Map document_type to model_type for database
+        $map = [
+            'PURCHASE_REQUEST' => 'App\Models\PurchaseRequest',
+            'PURCHASE_ORDER' => 'App\Models\PurchaseOrder',
+            'GOODS_RECEIPT' => 'App\Models\GoodsReceipt',
+        ];
+
         $data = $validated;
-        $data['model_type'] = $validated['document_type'];
+        $data['model_type'] = $map[$validated['document_type']] ?? $validated['document_type'];
         unset($data['document_type']);
 
         $workflow = ApprovalWorkflow::create($data);
@@ -94,8 +100,14 @@ class ApprovalWorkflowController extends Controller
         ]);
 
         // Map document_type to model_type for database
+        $map = [
+            'PURCHASE_REQUEST' => 'App\Models\PurchaseRequest',
+            'PURCHASE_ORDER' => 'App\Models\PurchaseOrder',
+            'GOODS_RECEIPT' => 'App\Models\GoodsReceipt',
+        ];
+
         $data = $validated;
-        $data['model_type'] = $validated['document_type'];
+        $data['model_type'] = $map[$validated['document_type']] ?? $validated['document_type'];
         unset($data['document_type']);
 
         $approvalWorkflow->update($data);
