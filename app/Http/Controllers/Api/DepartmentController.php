@@ -30,7 +30,13 @@ class DepartmentController extends Controller
         $paginator = $query->paginate($perPage)->appends($request->query());
 
         return response()->json([
-            'data' => $paginator,
+            'data' => $paginator->items(),
+            'meta' => [
+                'current_page' => $paginator->currentPage(),
+                'last_page' => $paginator->lastPage(),
+                'per_page' => $paginator->perPage(),
+                'total' => $paginator->total(),
+            ],
         ]);
     }
 
@@ -52,6 +58,9 @@ class DepartmentController extends Controller
             'head_user_id' => 'nullable|exists:users,id',
         ]);
 
+        $validated['created_by_user_id'] = $request->user()->id;
+        $validated['updated_by_user_id'] = $request->user()->id;
+
         $department = Department::create($validated);
         $department->load(['head:id,name,email']);
 
@@ -70,12 +79,29 @@ class DepartmentController extends Controller
             'head_user_id' => 'nullable|exists:users,id',
         ]);
 
-        // Prevent circular reference
+        // Prevent self as parent
         if (isset($validated['parent_id']) && $validated['parent_id'] == $department->id) {
             return response()->json([
                 'message' => 'A department cannot be its own parent',
+                'errors' => [
+                    'parent_id' => ['A department cannot be its own parent']
+                ]
             ], 422);
         }
+
+        // Prevent circular reference - check if new parent is a descendant
+        if (isset($validated['parent_id']) && $validated['parent_id']) {
+            if ($this->isDescendant($department->id, $validated['parent_id'])) {
+                return response()->json([
+                    'message' => 'Circular reference detected: Cannot set a descendant as parent',
+                    'errors' => [
+                        'parent_id' => ['Circular reference detected: Cannot set a descendant as parent']
+                    ]
+                ], 422);
+            }
+        }
+
+        $validated['updated_by_user_id'] = $request->user()->id;
 
         $department->update($validated);
         $department->load(['head:id,name,email']);
@@ -84,6 +110,23 @@ class DepartmentController extends Controller
             'data' => $department,
             'message' => 'Department updated successfully',
         ]);
+    }
+
+    /**
+     * Check if a department is a descendant of another
+     */
+    private function isDescendant(int $departmentId, int $potentialAncestorId): bool
+    {
+        $current = Department::find($potentialAncestorId);
+
+        while ($current && $current->parent_id) {
+            if ($current->parent_id == $departmentId) {
+                return true;
+            }
+            $current = $current->parent;
+        }
+
+        return false;
     }
 
     public function destroy(Department $department): JsonResponse
