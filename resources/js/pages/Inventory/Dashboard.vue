@@ -546,7 +546,7 @@ const getStockLevelLabel = (percent: number): string => {
             </Card>
 
             <!-- Additional Metrics -->
-            <div class="grid gap-4 md:grid-cols-3">
+            <!-- <div class="grid gap-4 md:grid-cols-3">
                 <Card>
                     <CardHeader>
                         <CardTitle>Stock Turnover Rate</CardTitle>
@@ -567,7 +567,7 @@ const getStockLevelLabel = (percent: number): string => {
                         ></div>
                     </CardContent>
                 </Card>
-            </div>
+            </div> -->
         </div>
     </AppLayout>
 </template>
