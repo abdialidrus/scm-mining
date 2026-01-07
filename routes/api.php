@@ -69,7 +69,13 @@ Route::middleware('auth:sanctum')->group(function () {
     });
 
     Route::get('/uoms', [UomController::class, 'index']);
+
+    // Departments
     Route::get('/departments', [DepartmentController::class, 'index']);
+    Route::post('/departments', [DepartmentController::class, 'store']);
+    Route::get('/departments/{department}', [DepartmentController::class, 'show']);
+    Route::put('/departments/{department}', [DepartmentController::class, 'update']);
+    Route::delete('/departments/{department}', [DepartmentController::class, 'destroy']);
 
     // Item Categories
     Route::prefix('item-categories')->group(function () {

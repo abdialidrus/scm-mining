@@ -283,3 +283,41 @@ export async function getItemCategoryTree() {
         '/api/item-categories/tree',
     );
 }
+
+// Departments
+export async function getDepartment(id: number) {
+    return apiFetch<{ data: DepartmentDto }>(`/api/departments/${id}`);
+}
+
+export async function createDepartment(data: {
+    code: string;
+    name: string;
+    parent_id?: number | null;
+    head_user_id?: number | null;
+}) {
+    return apiFetch<{ data: DepartmentDto }>('/api/departments', {
+        method: 'POST',
+        body: JSON.stringify(data),
+    });
+}
+
+export async function updateDepartment(
+    id: number,
+    data: {
+        code?: string;
+        name?: string;
+        parent_id?: number | null;
+        head_user_id?: number | null;
+    },
+) {
+    return apiFetch<{ data: DepartmentDto }>(`/api/departments/${id}`, {
+        method: 'PUT',
+        body: JSON.stringify(data),
+    });
+}
+
+export async function deleteDepartment(id: number) {
+    return apiFetch<{ message: string }>(`/api/departments/${id}`, {
+        method: 'DELETE',
+    });
+}

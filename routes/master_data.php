@@ -58,6 +58,24 @@ Route::middleware(['auth', 'verified'])->group(function () {
         return Inertia::render('master-data/departments/Index');
     })->name('master-data.departments.index');
 
+    Route::get('/master-data/departments/create', function () {
+        return Inertia::render('master-data/departments/Form', [
+            'departmentId' => null,
+        ]);
+    })->name('master-data.departments.create');
+
+    Route::get('/master-data/departments/{department}/edit', function (\App\Models\Department $department) {
+        return Inertia::render('master-data/departments/Form', [
+            'departmentId' => $department->id,
+        ]);
+    })->name('master-data.departments.edit');
+
+    Route::get('/master-data/departments/{department}', function (\App\Models\Department $department) {
+        return Inertia::render('master-data/departments/Show', [
+            'departmentId' => $department->id,
+        ]);
+    })->name('master-data.departments.show');
+
     Route::get('/master-data/users', function () {
         return Inertia::render('master-data/users/Index');
     })->name('master-data.users.index');

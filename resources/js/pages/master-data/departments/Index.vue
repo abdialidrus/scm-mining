@@ -14,12 +14,15 @@ import {
 import AppLayout from '@/layouts/AppLayout.vue';
 import { listDepartments, type DepartmentDto } from '@/services/masterDataApi';
 import { BreadcrumbItem } from '@/types';
-import { Head } from '@inertiajs/vue3';
+import { Head, Link } from '@inertiajs/vue3';
 import {
     ChevronLeft,
     ChevronRight,
     ChevronsLeft,
     ChevronsRight,
+    Edit,
+    Eye,
+    Plus,
 } from 'lucide-vue-next';
 import { computed, onMounted, ref } from 'vue';
 
@@ -101,11 +104,20 @@ onMounted(load);
         <div
             class="flex h-full flex-1 flex-col gap-4 overflow-x-auto rounded-xl p-4"
         >
-            <div>
-                <h1 class="text-xl font-semibold">Departments</h1>
-                <p class="text-sm text-muted-foreground">
-                    Management departments
-                </p>
+            <div class="flex items-center justify-between">
+                <div>
+                    <h1 class="text-xl font-semibold">Departments</h1>
+                    <p class="text-sm text-muted-foreground">
+                        Management departments
+                    </p>
+                </div>
+
+                <Button as-child>
+                    <Link href="/master-data/departments/create">
+                        <Plus class="mr-2 h-4 w-4" />
+                        Create Department
+                    </Link>
+                </Button>
             </div>
 
             <div class="mt-6 grid items-end gap-3 md:grid-cols-12">
@@ -153,16 +165,11 @@ onMounted(load);
                             <TableHead>Code</TableHead>
                             <TableHead>Name</TableHead>
                             <TableHead>Head</TableHead>
-                            <TableHead class="text-right">ID</TableHead>
+                            <TableHead class="text-right">Actions</TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>
-                        <TableRow
-                            v-for="d in departments"
-                            :key="d.id"
-                            class="cursor-pointer hover:bg-muted/30"
-                            title="Read-only"
-                        >
+                        <TableRow v-for="d in departments" :key="d.id">
                             <TableCell class="font-medium">{{
                                 d.code
                             }}</TableCell>
@@ -173,7 +180,24 @@ onMounted(load);
                                     >-</span
                                 >
                             </TableCell>
-                            <TableCell class="text-right">{{ d.id }}</TableCell>
+                            <TableCell class="text-right">
+                                <div class="flex justify-end gap-2">
+                                    <Button variant="ghost" size="sm" as-child>
+                                        <Link
+                                            :href="`/master-data/departments/${d.id}`"
+                                        >
+                                            <Eye class="h-4 w-4" />
+                                        </Link>
+                                    </Button>
+                                    <Button variant="ghost" size="sm" as-child>
+                                        <Link
+                                            :href="`/master-data/departments/${d.id}/edit`"
+                                        >
+                                            <Edit class="h-4 w-4" />
+                                        </Link>
+                                    </Button>
+                                </div>
+                            </TableCell>
                         </TableRow>
 
                         <TableRow v-if="departments.length === 0">
