@@ -51,8 +51,8 @@ const isDeptHead = user?.roles?.some((role: any) => role.name === 'dept_head');
 const isGm = user?.roles?.some((role: any) => role.name === 'gm');
 const isDirector = user?.roles?.some((role: any) => role.name === 'director');
 
+// Permission checks
 const canShowMasterData = isSuperAdmin || isProcurement;
-
 const canShowPurchaseRequests =
     isSuperAdmin ||
     isDeptHead ||
@@ -60,28 +60,26 @@ const canShowPurchaseRequests =
     isRequestor ||
     isGm ||
     isDirector;
-
 const canShowPurchaseOrders =
     isSuperAdmin || isProcurement || isFinance || isGm || isDirector;
-
 const canShowGoodsReceipts =
     isSuperAdmin || isWarehouse || isFinance || isGm || isDirector;
-
 const canShowPutAways = isSuperAdmin || isWarehouse || isGm || isDirector;
-
 const canShowPickingOrders = isSuperAdmin || isWarehouse || isGm || isDirector;
-
-const canShowInvoices =
-    isSuperAdmin || isFinance || isProcurement || isGm || isDirector;
-
+const canShowInvoices = isSuperAdmin || isFinance;
 const canShowInventoryReports =
-    isSuperAdmin || isProcurement || isGm || isDirector;
-
-const canShowWarehouses = isSuperAdmin || isWarehouse || isProcurement;
-
-// Check if user has any approver role
+    isSuperAdmin || isWarehouse || isGm || isDirector;
+const canShowWarehouses = isSuperAdmin || isWarehouse;
+const canShowDepartments = isSuperAdmin;
+const canShowItems = isSuperAdmin || isProcurement || isWarehouse;
+const canShowSuppliers = isSuperAdmin || isProcurement;
+const canShowUsers = isSuperAdmin;
 const canShowMyApprovals =
     isSuperAdmin || isDeptHead || isFinance || isGm || isDirector;
+const canShowReports =
+    isSuperAdmin || isGm || isDirector || isProcurement || isFinance;
+const canShowInventoryAnalytics =
+    isSuperAdmin || isWarehouse || isGm || isDirector || isProcurement;
 
 const pendingApprovalsCount = ref(0);
 const unreadNotificationsCount = ref(0);
@@ -112,7 +110,7 @@ mainNavItems.push({
 });
 
 // Reports menu - available for management, procurement, and finance roles
-if (isSuperAdmin || isGm || isDirector || isProcurement || isFinance) {
+if (canShowReports) {
     mainNavItems.push({
         title: 'Reports',
         href: '/reports',
@@ -121,7 +119,7 @@ if (isSuperAdmin || isGm || isDirector || isProcurement || isFinance) {
 }
 
 // Inventory Dashboard - available for warehouse, management, and procurement roles
-if (isSuperAdmin || isWarehouse || isGm || isDirector || isProcurement) {
+if (canShowInventoryAnalytics) {
     mainNavItems.push({
         title: 'Inventory Analytics',
         href: '/inventory/dashboard',
@@ -154,38 +152,28 @@ onMounted(async () => {
     }
 });
 
-function getProcurementNavItems(): NavItem[] {
+function getFinanceNavItems(): NavItem[] {
     const items: NavItem[] = [];
-
-    if (canShowPurchaseRequests) {
-        items.push({
-            title: 'Purchase Requests',
-            href: '/purchase-requests',
-            icon: FileText,
-        });
-    }
-
-    if (canShowPurchaseOrders) {
-        items.push({
-            title: 'Purchase Orders',
-            href: '/purchase-orders',
-            icon: ShoppingCart,
-        });
-    }
-
-    if (canShowGoodsReceipts) {
-        items.push({
-            title: 'Goods Receipts',
-            href: '/goods-receipts',
-            icon: PackageCheck,
-        });
-    }
 
     if (canShowInvoices) {
         items.push({
             title: 'Invoices',
             href: '/accounting/invoices',
             icon: Receipt,
+        });
+    }
+
+    return items;
+}
+
+function getWarehouseNavItems(): NavItem[] {
+    const items: NavItem[] = [];
+
+    if (canShowGoodsReceipts) {
+        items.push({
+            title: 'Goods Receipts',
+            href: '/goods-receipts',
+            icon: PackageCheck,
         });
     }
 
@@ -202,6 +190,28 @@ function getProcurementNavItems(): NavItem[] {
             title: 'Picking Orders',
             href: '/picking-orders',
             icon: PackageMinus,
+        });
+    }
+
+    return items;
+}
+
+function getProcurementNavItems(): NavItem[] {
+    const items: NavItem[] = [];
+
+    if (canShowPurchaseRequests) {
+        items.push({
+            title: 'Purchase Requests',
+            href: '/purchase-requests',
+            icon: FileText,
+        });
+    }
+
+    if (canShowPurchaseOrders) {
+        items.push({
+            title: 'Purchase Orders',
+            href: '/purchase-orders',
+            icon: ShoppingCart,
         });
     }
 
@@ -232,13 +242,16 @@ function getMasterDataNavItems(): NavItem[] {
         });
     }
 
-    if (canShowMasterData) {
+    if (canShowDepartments) {
+        items.push({
+            title: 'Departments',
+            href: '/master-data/departments',
+            icon: Users,
+        });
+    }
+
+    if (canShowItems) {
         items.push(
-            {
-                title: 'Departments',
-                href: '/master-data/departments',
-                icon: Users,
-            },
             {
                 title: 'Items',
                 href: '/master-data/items',
@@ -254,17 +267,23 @@ function getMasterDataNavItems(): NavItem[] {
                 href: '/master-data/uoms',
                 icon: Ruler,
             },
-            {
-                title: 'Suppliers',
-                href: '/master-data/suppliers',
-                icon: Users,
-            },
-            {
-                title: 'Users',
-                href: '/master-data/users',
-                icon: Users,
-            },
         );
+    }
+
+    if (canShowSuppliers) {
+        items.push({
+            title: 'Suppliers',
+            href: '/master-data/suppliers',
+            icon: Users,
+        });
+    }
+
+    if (canShowUsers) {
+        items.push({
+            title: 'Users',
+            href: '/master-data/users',
+            icon: Users,
+        });
     }
 
     return items;
@@ -313,7 +332,21 @@ const settingsNavItems: NavItem[] = isSuperAdmin
 
         <SidebarContent>
             <NavMain :title="'Main'" :items="mainNavItems" />
-            <NavMain :title="'Procurement'" :items="getProcurementNavItems()" />
+            <NavMain
+                v-if="getProcurementNavItems().length > 0"
+                :title="'Procurement'"
+                :items="getProcurementNavItems()"
+            />
+            <NavMain
+                v-if="getFinanceNavItems().length > 0"
+                :title="'Finance'"
+                :items="getFinanceNavItems()"
+            />
+            <NavMain
+                v-if="getWarehouseNavItems().length > 0"
+                :title="'Warehouse'"
+                :items="getWarehouseNavItems()"
+            />
             <NavMain
                 v-if="canShowInventoryReports"
                 :title="'Inventory'"
