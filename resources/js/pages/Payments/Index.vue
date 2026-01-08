@@ -28,7 +28,7 @@ import {
     type PurchaseOrderSummary,
 } from '@/services/paymentApi';
 import { BreadcrumbItem } from '@/types';
-import { Head, Link } from '@inertiajs/vue3';
+import { Head, router } from '@inertiajs/vue3';
 import {
     AlertCircle,
     CheckCircle,
@@ -363,24 +363,24 @@ onMounted(load);
                             >
                             <TableHead>Due Date</TableHead>
                             <TableHead>Status</TableHead>
-                            <TableHead class="text-center">Action</TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>
                         <TableRow
                             v-for="po in purchaseOrders"
                             :key="po.id"
+                            class="cursor-pointer hover:bg-muted/30"
                             :class="{
                                 'bg-destructive/5': isOverdue(po),
                             }"
+                            @click="
+                                router.visit(
+                                    `/payments/purchase-orders/${po.id}`,
+                                )
+                            "
                         >
                             <TableCell class="font-medium">
-                                <Link
-                                    :href="`/payments/purchase-orders/${po.id}`"
-                                    class="hover:underline"
-                                >
-                                    {{ po.po_number }}
-                                </Link>
+                                {{ po.po_number }}
                             </TableCell>
                             <TableCell>
                                 {{ po.supplier?.name || '-' }}
@@ -413,15 +413,6 @@ onMounted(load);
                                 >
                                     {{ po.payment_status }}
                                 </Badge>
-                            </TableCell>
-                            <TableCell class="text-center">
-                                <Button size="sm" variant="outline" as-child>
-                                    <Link
-                                        :href="`/payments/purchase-orders/${po.id}/create`"
-                                    >
-                                        Record Payment
-                                    </Link>
-                                </Button>
                             </TableCell>
                         </TableRow>
 
