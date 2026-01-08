@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\SupplierPayment;
 use App\Models\PaymentStatusHistory;
 use App\Models\PurchaseOrder;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 
@@ -32,7 +33,7 @@ class PaymentService
             $payment = SupplierPayment::create([
                 'payment_number' => SupplierPayment::generatePaymentNumber(),
                 ...$data,
-                'created_by_user_id' => auth()->id(),
+                'created_by_user_id' => Auth::id(),
             ]);
 
             // Update PO payment status
@@ -103,7 +104,7 @@ class PaymentService
         try {
             $payment->update([
                 'status' => 'CONFIRMED',
-                'approved_by_user_id' => auth()->id(),
+                'approved_by_user_id' => Auth::id(),
                 'approved_at' => now(),
             ]);
 
