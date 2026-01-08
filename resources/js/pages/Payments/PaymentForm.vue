@@ -36,6 +36,10 @@ const submitting = ref(false);
 const error = ref<string | null>(null);
 const purchaseOrder = ref<PurchaseOrderSummary | null>(null);
 
+// Invoice selection mode
+const useExistingInvoice = ref(false);
+const selectedPaymentId = ref<number | undefined>(undefined);
+
 // Form fields
 const form = ref({
     supplier_invoice_number: '',
@@ -61,6 +65,23 @@ const title = computed(() =>
         : 'Record Payment',
 );
 
+// Check if PO has previous payments (PARTIAL status)
+const hasPreviousPayments = computed(() => {
+    return (
+        purchaseOrder.value?.payment_status === 'PARTIAL' &&
+        purchaseOrder.value?.payments &&
+        purchaseOrder.value.payments.length > 0
+    );
+});
+
+// Get confirmed payments with invoice info
+const previousPayments = computed(() => {
+    if (!purchaseOrder.value?.payments) return [];
+    return purchaseOrder.value.payments.filter(
+        (p) => p.status === 'CONFIRMED' && p.supplier_invoice_number,
+    );
+});
+
 async function load() {
     loading.value = true;
     error.value = null;
@@ -83,6 +104,39 @@ async function load() {
         error.value = e?.message ?? 'Failed to load purchase order';
     } finally {
         loading.value = false;
+    }
+}
+
+function onUseExistingInvoiceChange(value: boolean) {
+    useExistingInvoice.value = value;
+
+    if (!value) {
+        // Reset to new invoice mode
+        selectedPaymentId.value = undefined;
+        form.value.supplier_invoice_number = '';
+        form.value.supplier_invoice_date = '';
+        form.value.supplier_invoice_amount = '';
+        form.value.supplier_invoice_file = null;
+    }
+}
+
+function onSelectPreviousPayment(paymentId: any) {
+    if (!paymentId) return;
+
+    const id =
+        typeof paymentId === 'string' ? parseInt(paymentId) : Number(paymentId);
+    selectedPaymentId.value = id;
+
+    // Find the selected payment and copy invoice info
+    const payment = previousPayments.value.find((p) => p.id === id);
+    if (payment) {
+        form.value.supplier_invoice_number = payment.supplier_invoice_number;
+        form.value.supplier_invoice_date = payment.supplier_invoice_date;
+        form.value.supplier_invoice_amount = String(
+            payment.supplier_invoice_amount,
+        );
+        // Note: We cannot copy the file, user can download from previous payment if needed
+        form.value.supplier_invoice_file = null;
     }
 }
 
@@ -200,6 +254,14 @@ function formatCurrency(value: number): string {
         minimumFractionDigits: 0,
         maximumFractionDigits: 0,
     }).format(value);
+}
+
+function formatDate(dateString: string): string {
+    return new Date(dateString).toLocaleDateString('id-ID', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+    });
 }
 
 function getFieldError(field: string): string | null {
@@ -323,6 +385,126 @@ onMounted(load);
                             </CardDescription>
                         </CardHeader>
                         <CardContent class="space-y-4">
+                            <!-- Invoice Selection Mode (for PARTIAL payments) -->
+                            <div
+                                v-if="hasPreviousPayments"
+                                class="rounded-lg border border-blue-200 bg-blue-50 p-4 dark:border-blue-800 dark:bg-blue-950"
+                            >
+                                <div class="mb-3 flex items-start gap-2">
+                                    <AlertCircle
+                                        class="mt-0.5 h-5 w-5 text-blue-600 dark:text-blue-400"
+                                    />
+                                    <div class="flex-1">
+                                        <p
+                                            class="font-medium text-blue-900 dark:text-blue-100"
+                                        >
+                                            Partial Payment Detected
+                                        </p>
+                                        <p
+                                            class="mt-1 text-sm text-blue-700 dark:text-blue-300"
+                                        >
+                                            This PO has previous payments. You
+                                            can reuse invoice information or
+                                            enter new invoice details.
+                                        </p>
+                                    </div>
+                                </div>
+
+                                <div class="space-y-3">
+                                    <div class="flex items-center gap-4">
+                                        <label class="flex items-center gap-2">
+                                            <input
+                                                type="radio"
+                                                :checked="!useExistingInvoice"
+                                                @change="
+                                                    onUseExistingInvoiceChange(
+                                                        false,
+                                                    )
+                                                "
+                                                class="h-4 w-4"
+                                            />
+                                            <span class="text-sm font-medium"
+                                                >Enter new invoice</span
+                                            >
+                                        </label>
+                                        <label class="flex items-center gap-2">
+                                            <input
+                                                type="radio"
+                                                :checked="useExistingInvoice"
+                                                @change="
+                                                    onUseExistingInvoiceChange(
+                                                        true,
+                                                    )
+                                                "
+                                                class="h-4 w-4"
+                                            />
+                                            <span class="text-sm font-medium"
+                                                >Use existing invoice</span
+                                            >
+                                        </label>
+                                    </div>
+
+                                    <!-- Select Previous Payment -->
+                                    <div
+                                        v-if="useExistingInvoice"
+                                        class="space-y-2"
+                                    >
+                                        <Label for="previous-payment">
+                                            Select Previous Payment
+                                            <span class="text-destructive"
+                                                >*</span
+                                            >
+                                        </Label>
+                                        <Select
+                                            :model-value="
+                                                selectedPaymentId
+                                                    ? String(selectedPaymentId)
+                                                    : undefined
+                                            "
+                                            @update:model-value="
+                                                onSelectPreviousPayment
+                                            "
+                                        >
+                                            <SelectTrigger
+                                                id="previous-payment"
+                                            >
+                                                <SelectValue
+                                                    placeholder="Select a payment to copy invoice from"
+                                                />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem
+                                                    v-for="payment in previousPayments"
+                                                    :key="payment.id"
+                                                    :value="String(payment.id)"
+                                                >
+                                                    {{
+                                                        payment.supplier_invoice_number
+                                                    }}
+                                                    -
+                                                    {{
+                                                        formatCurrency(
+                                                            payment.supplier_invoice_amount,
+                                                        )
+                                                    }}
+                                                    ({{
+                                                        formatDate(
+                                                            payment.supplier_invoice_date,
+                                                        )
+                                                    }})
+                                                </SelectItem>
+                                            </SelectContent>
+                                        </Select>
+                                        <p
+                                            class="text-xs text-muted-foreground"
+                                        >
+                                            Invoice details will be copied from
+                                            the selected payment
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+
                             <div class="grid gap-4 md:grid-cols-3">
                                 <div class="space-y-2">
                                     <Label for="invoice-number">
@@ -333,6 +515,7 @@ onMounted(load);
                                         id="invoice-number"
                                         v-model="form.supplier_invoice_number"
                                         placeholder="INV-2026-001"
+                                        :disabled="useExistingInvoice"
                                         :class="{
                                             'border-destructive': getFieldError(
                                                 'supplier_invoice_number',
@@ -364,6 +547,7 @@ onMounted(load);
                                         id="invoice-date"
                                         v-model="form.supplier_invoice_date"
                                         type="date"
+                                        :disabled="useExistingInvoice"
                                         :class="{
                                             'border-destructive': getFieldError(
                                                 'supplier_invoice_date',
@@ -397,6 +581,7 @@ onMounted(load);
                                         type="number"
                                         step="0.01"
                                         placeholder="0.00"
+                                        :disabled="useExistingInvoice"
                                         :class="{
                                             'border-destructive': getFieldError(
                                                 'supplier_invoice_amount',
@@ -422,7 +607,13 @@ onMounted(load);
 
                             <div class="space-y-2">
                                 <Label for="invoice-file"
-                                    >Invoice File (PDF, max 10MB)</Label
+                                    >Invoice File (PDF, max 10MB)
+                                    <span
+                                        v-if="useExistingInvoice"
+                                        class="text-xs text-muted-foreground"
+                                        >(Optional - invoice already
+                                        uploaded)</span
+                                    ></Label
                                 >
                                 <div class="flex items-center gap-2">
                                     <Input
@@ -430,6 +621,10 @@ onMounted(load);
                                         type="file"
                                         accept=".pdf"
                                         @change="onInvoiceFileChange"
+                                        :disabled="
+                                            useExistingInvoice &&
+                                            !form.supplier_invoice_file
+                                        "
                                         class="flex-1"
                                     />
                                     <Button

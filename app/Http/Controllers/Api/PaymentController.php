@@ -69,7 +69,15 @@ class PaymentController extends Controller
      */
     public function create(PurchaseOrder $purchaseOrder): JsonResponse
     {
-        $purchaseOrder->load(['supplier', 'goodsReceipts']);
+        $purchaseOrder->load([
+            'supplier',
+            'goodsReceipts',
+            'payments' => function ($query) {
+                $query->where('status', 'CONFIRMED')
+                    ->whereNotNull('supplier_invoice_number')
+                    ->latest();
+            }
+        ]);
 
         return response()->json([
             'success' => true,
