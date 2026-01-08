@@ -18,6 +18,7 @@ import {
     BarChart3,
     Bell,
     CheckCircle,
+    CreditCard,
     FileText,
     GitBranch,
     LayoutGrid,
@@ -68,6 +69,7 @@ const canShowGoodsReceipts =
 const canShowPutAways = isSuperAdmin || isWarehouse || isGm || isDirector;
 const canShowPickingOrders = isSuperAdmin || isWarehouse || isGm || isDirector;
 const canShowInvoices = isSuperAdmin || isFinance;
+const canShowPayments = isSuperAdmin || isFinance;
 const canShowInventoryReports =
     isSuperAdmin || isWarehouse || isGm || isDirector;
 const canShowWarehouses = isSuperAdmin || isWarehouse;
@@ -155,6 +157,14 @@ onMounted(async () => {
 
 function getFinanceNavItems(): NavItem[] {
     const items: NavItem[] = [];
+
+    if (canShowPayments) {
+        items.push({
+            title: 'Payments',
+            href: '/payments',
+            icon: CreditCard,
+        });
+    }
 
     if (canShowInvoices) {
         items.push({

@@ -267,3 +267,6 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::delete('/{item_inventory_setting}', [\App\Http\Controllers\ItemInventorySettingController::class, 'destroy']);
     });
 });
+
+// Payments API Routes
+require __DIR__ . '/payments.php';

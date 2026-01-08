@@ -47,13 +47,23 @@ export async function apiFetch<T>(
 
     const csrfToken = getCsrfToken();
 
+    // Check if body is FormData - don't set Content-Type for multipart uploads
+    const isFormData = init?.body instanceof FormData;
+
+    const headers: HeadersInit = {
+        Accept: 'application/json',
+        ...(csrfToken ? { 'X-XSRF-TOKEN': csrfToken } : {}),
+        ...(init?.headers ?? {}),
+    };
+
+    // Only set Content-Type for JSON, let browser set it for FormData
+    if (!isFormData) {
+        (headers as Record<string, string>)['Content-Type'] =
+            'application/json';
+    }
+
     const res = await fetch(input, {
-        headers: {
-            Accept: 'application/json',
-            'Content-Type': 'application/json',
-            ...(csrfToken ? { 'X-XSRF-TOKEN': csrfToken } : {}),
-            ...(init?.headers ?? {}),
-        },
+        headers,
         credentials: 'same-origin',
         ...init,
     });

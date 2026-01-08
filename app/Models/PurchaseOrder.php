@@ -41,6 +41,12 @@ class PurchaseOrder extends Model
         'cancelled_at',
         'cancelled_by_user_id',
         'cancel_reason',
+        // Payment fields
+        'payment_status',
+        'payment_term_days',
+        'payment_due_date',
+        'total_paid',
+        'outstanding_amount',
     ];
 
     protected function casts(): array
@@ -58,6 +64,10 @@ class PurchaseOrder extends Model
             'sent_at' => 'datetime',
             'closed_at' => 'datetime',
             'cancelled_at' => 'datetime',
+            // Payment casts
+            'payment_due_date' => 'date',
+            'total_paid' => 'decimal:2',
+            'outstanding_amount' => 'decimal:2',
         ];
     }
 
@@ -95,5 +105,85 @@ class PurchaseOrder extends Model
     {
         return $this->belongsToMany(PurchaseRequest::class, 'purchase_order_purchase_request')
             ->withTimestamps();
+    }
+
+    // Payment relationships
+    public function payments()
+    {
+        return $this->hasMany(SupplierPayment::class);
+    }
+
+    public function paymentStatusHistories()
+    {
+        return $this->hasMany(PaymentStatusHistory::class);
+    }
+
+    public function goodsReceipts()
+    {
+        return $this->hasMany(GoodsReceipt::class);
+    }
+
+    /**
+     * Check if PO is overdue for payment
+     */
+    public function isOverdue(): bool
+    {
+        return $this->payment_status !== 'PAID'
+            && $this->payment_due_date
+            && $this->payment_due_date->isPast();
+    }
+
+    /**
+     * Update payment status based on payments
+     */
+    public function updatePaymentStatus(): void
+    {
+        $totalPaid = $this->payments()
+            ->where('status', 'CONFIRMED')
+            ->sum('payment_amount');
+
+        $oldStatus = $this->payment_status;
+
+        $this->total_paid = $totalPaid;
+        $this->outstanding_amount = $this->total_amount - $totalPaid;
+
+        if ($this->outstanding_amount <= 0) {
+            $this->payment_status = 'PAID';
+        } elseif ($totalPaid > 0) {
+            $this->payment_status = 'PARTIAL';
+        } elseif ($this->isOverdue()) {
+            $this->payment_status = 'OVERDUE';
+        } else {
+            $this->payment_status = 'UNPAID';
+        }
+
+        $this->save();
+
+        // Log status change if changed
+        if ($oldStatus !== $this->payment_status) {
+            PaymentStatusHistory::create([
+                'purchase_order_id' => $this->id,
+                'old_status' => $oldStatus,
+                'new_status' => $this->payment_status,
+                'changed_by_user_id' => auth()->id(),
+                'notes' => "Payment status updated from {$oldStatus} to {$this->payment_status}",
+            ]);
+        }
+    }
+
+    /**
+     * Get confirmed payments sum
+     */
+    public function getTotalPaidAttribute($value)
+    {
+        return $value ?? 0;
+    }
+
+    /**
+     * Get outstanding amount
+     */
+    public function getOutstandingAmountAttribute($value)
+    {
+        return $value ?? $this->total_amount;
     }
 }
