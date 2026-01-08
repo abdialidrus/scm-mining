@@ -150,7 +150,7 @@ class PaymentService
                 PurchaseOrder::STATUS_SENT,
                 PurchaseOrder::STATUS_CLOSED
             ])
-            ->whereIn('payment_status', ['UNPAID', 'PARTIAL', 'OVERDUE'])
+            ->whereIn('payment_status', ['UNPAID', 'PARTIAL', 'OVERDUE', 'PAID'])
             ->with(['supplier', 'goodsReceipts', 'payments' => fn($q) => $q->confirmed()])
             ->when($filters['supplier_id'] ?? null, fn($q, $v) => $q->where('supplier_id', $v))
             ->when($filters['payment_status'] ?? null, fn($q, $v) => $q->where('payment_status', $v))
@@ -165,8 +165,9 @@ class PaymentService
                         $sq->where('name', 'LIKE', "%{$v}%")
                     )
             )
-            ->orderBy('payment_due_date', 'asc')
-            ->orderBy('total_amount', 'desc')
+            // ->orderBy('payment_due_date', 'asc')
+            // ->orderBy('total_amount', 'desc')
+            ->orderBy('outstanding_amount', 'desc')
             ->paginate($filters['per_page'] ?? 20);
     }
 
