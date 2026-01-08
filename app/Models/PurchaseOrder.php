@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\Auth;
 
 class PurchaseOrder extends Model
 {
@@ -165,7 +166,7 @@ class PurchaseOrder extends Model
                 'purchase_order_id' => $this->id,
                 'old_status' => $oldStatus,
                 'new_status' => $this->payment_status,
-                'changed_by_user_id' => auth()->id(),
+                'changed_by_user_id' => Auth::id(),
                 'notes' => "Payment status updated from {$oldStatus} to {$this->payment_status}",
             ]);
         }
